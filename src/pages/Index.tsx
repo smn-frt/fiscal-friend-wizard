@@ -119,17 +119,15 @@ const Index = () => {
   const [year, setYear] = useState(2026);
   const [uploading, setUploading] = useState(false);
   const [sessionUser, setSessionUser] = useState<string | null>(null);
+  const [authDraft, setAuthDraft] = useState({ email: "", password: "" });
+  const [authMode, setAuthMode] = useState<"signin" | "signup">("signup");
   const [taxDraft, setTaxDraft] = useState({ reference: "", amount: "", paid_at: "" });
   const fileRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     const boot = async () => {
       const { data: session } = await supabase.auth.getSession();
-      let uid = session.session?.user.id ?? null;
-      if (!uid) {
-        const { data } = await supabase.auth.signInAnonymously();
-        uid = data.user?.id ?? null;
-      }
+      const uid = session.session?.user.id ?? null;
       setSessionUser(uid);
       if (!uid) return;
       const [{ data: invoiceRows }, { data: taxRows }] = await Promise.all([
@@ -141,6 +139,15 @@ const Index = () => {
     };
     boot();
   }, []);
+
+  const handleAuth = async () => {
+    if (!authDraft.email || authDraft.password.length < 6) return toast.error("Inserisci email e password di almeno 6 caratteri");
+    const action = authMode === "signup" ? supabase.auth.signUp(authDraft) : supabase.auth.signInWithPassword(authDraft);
+    const { data, error } = await action;
+    if (error) return toast.error("Accesso non riuscito", { description: error.message });
+    setSessionUser(data.user?.id ?? null);
+    toast.success(authMode === "signup" ? "Account creato" : "Accesso effettuato");
+  };
 
   const yearOptions = useMemo(() => [...new Set([...historicalYears.map((item) => item.year), ...invoices.map((item) => item.year), ...taxes.map((item) => item.year)])].sort((a, b) => b - a), [invoices, taxes]);
 
