@@ -367,6 +367,7 @@ const Index = () => {
             <div className="grid gap-3 sm:grid-cols-2">
               <SummaryTile icon={<Archive className="h-5 w-5" />} label="Fatture" value={`${current.invoices} registrate`} />
               <SummaryTile icon={<Calculator className="h-5 w-5" />} label="Imponibile fatture" value={money(current.net)} />
+              <SummaryTile icon={<FileText className="h-5 w-5" />} label="Tasse" value={money(current.taxes)} />
               <SummaryTile icon={<Coins className="h-5 w-5" />} label="Guadagni extra" value={money(current.extra ?? 0)} />
               <SummaryTile icon={<HandCoins className="h-5 w-5" />} label="Risultato" value={money(current.gain)} />
             </div>
@@ -383,16 +384,16 @@ const Index = () => {
           <div>
             <h2 className="font-display text-3xl font-bold">Archivio fatture, guadagni extra, tasse e detrazioni</h2>
           </div>
-          <div className="flex flex-wrap gap-2">
-            {yearOptions.map((item) => (
-              <Button key={item} variant={item === year ? "ledger" : "outline"} size="sm" onClick={() => setYear(item)}>{item}</Button>
-            ))}
-          </div>
+          <Select value={String(year)} onValueChange={(value) => setYear(Number(value))}>
+            <SelectTrigger className="w-full sm:w-44"><SelectValue placeholder="Anno" /></SelectTrigger>
+            <SelectContent>{yearOptions.map((item) => <SelectItem key={item} value={String(item)}>{item}</SelectItem>)}</SelectContent>
+          </Select>
         </div>
 
         <Tabs defaultValue="fatture" className="space-y-5">
           <TabsList className="h-auto flex-wrap justify-start bg-surface-raised p-1 shadow-soft">
             <TabsTrigger value="fatture">Archivio fatture</TabsTrigger>
+            <TabsTrigger value="pdf">PDF fatture</TabsTrigger>
             <TabsTrigger value="extra">Guadagni extra</TabsTrigger>
             <TabsTrigger value="tasse">Tasse</TabsTrigger>
             <TabsTrigger value="detrazioni">Detrazioni fiscali</TabsTrigger>
