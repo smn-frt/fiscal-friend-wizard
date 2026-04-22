@@ -295,6 +295,24 @@ const Index = () => {
             <div className="max-w-3xl animate-rise-in">
               <h1 className="font-display text-4xl font-bold leading-tight sm:text-6xl lg:text-7xl">Contabilità</h1>
             </div>
+            <div className="rounded-lg border border-ledger-foreground/15 bg-surface-raised/95 p-4 text-foreground shadow-ledger">
+              <div className="mb-3 flex items-center gap-2">
+                <span className="rounded-md bg-surface-tint p-2 text-primary"><ShieldCheck className="h-5 w-5" /></span>
+                <h2 className="font-display text-xl font-bold">Andamento guadagni</h2>
+              </div>
+              <div className="h-[260px]">
+                <ResponsiveContainer width="100%" height="100%">
+                  <AreaChart data={chartData} margin={{ left: 0, right: 8, top: 10, bottom: 0 }}>
+                    <CartesianGrid stroke="hsl(var(--border))" strokeDasharray="4 4" />
+                    <XAxis dataKey="year" stroke="hsl(var(--muted-foreground))" />
+                    <YAxis stroke="hsl(var(--muted-foreground))" tickFormatter={(value) => `${Number(value) / 1000}k`} />
+                    <Tooltip formatter={(value) => money(Number(value))} contentStyle={{ borderColor: "hsl(var(--border))", background: "hsl(var(--card))", color: "hsl(var(--foreground))" }} />
+                    <Area type="monotone" dataKey="gain" name="Guadagno" stroke="hsl(var(--primary))" fill="hsl(var(--primary) / 0.18)" strokeWidth={3} />
+                    <Area type="monotone" dataKey="taxes" name="Tasse" stroke="hsl(var(--accent))" fill="hsl(var(--accent) / 0.12)" strokeWidth={2} />
+                  </AreaChart>
+                </ResponsiveContainer>
+              </div>
+            </div>
             <div className="grid gap-3 sm:grid-cols-4">
               <Metric label="Fatturato lordo" value={money(current.gross)} />
               <Metric label="Tasse totali" value={money(current.taxes)} />
@@ -342,7 +360,7 @@ const Index = () => {
       <section className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
         <div className="mb-5 flex flex-col justify-between gap-3 sm:flex-row sm:items-center">
           <div>
-            <h2 className="font-display text-3xl font-bold">Archivio fatture, tasse e andamento guadagni</h2>
+            <h2 className="font-display text-3xl font-bold">Archivio fatture, guadagni extra, tasse e detrazioni</h2>
           </div>
           <div className="flex flex-wrap gap-2">
             {yearOptions.map((item) => (
@@ -351,53 +369,13 @@ const Index = () => {
           </div>
         </div>
 
-        <Tabs defaultValue="dashboard" className="space-y-5">
+        <Tabs defaultValue="fatture" className="space-y-5">
           <TabsList className="h-auto flex-wrap justify-start bg-surface-raised p-1 shadow-soft">
-            <TabsTrigger value="dashboard">Andamento guadagni</TabsTrigger>
             <TabsTrigger value="fatture">Archivio fatture</TabsTrigger>
             <TabsTrigger value="extra">Guadagni extra</TabsTrigger>
             <TabsTrigger value="tasse">Tasse</TabsTrigger>
             <TabsTrigger value="detrazioni">Detrazioni fiscali</TabsTrigger>
           </TabsList>
-
-          <TabsContent value="dashboard" className="space-y-5">
-            <div className="grid gap-4 sm:grid-cols-4">
-              <Panel title="Fatturato lordo" icon={<Archive className="h-5 w-5" />}><p className="font-display text-3xl font-bold text-primary">{money(current.gross)}</p></Panel>
-              <Panel title="Tasse totali" icon={<FileText className="h-5 w-5" />}><p className="font-display text-3xl font-bold text-accent">{money(current.taxes)}</p></Panel>
-              <Panel title="Extra" icon={<Coins className="h-5 w-5" />}><p className="font-display text-3xl font-bold text-secondary">{money(current.extra ?? 0)}</p></Panel>
-              <Panel title="Guadagno" icon={<ShieldCheck className="h-5 w-5" />}><p className="font-display text-3xl font-bold text-primary">{money(current.gain)}</p></Panel>
-            </div>
-            <div className="grid gap-5 lg:grid-cols-[1.2fr_0.8fr]">
-              <Panel title="Andamento guadagni" icon={<ShieldCheck className="h-5 w-5" />}>
-                <div className="h-[320px]">
-                  <ResponsiveContainer width="100%" height="100%">
-                    <AreaChart data={chartData} margin={{ left: 0, right: 8, top: 10, bottom: 0 }}>
-                      <CartesianGrid stroke="hsl(var(--border))" strokeDasharray="4 4" />
-                      <XAxis dataKey="year" stroke="hsl(var(--muted-foreground))" />
-                      <YAxis stroke="hsl(var(--muted-foreground))" tickFormatter={(value) => `${Number(value) / 1000}k`} />
-                      <Tooltip formatter={(value) => money(Number(value))} contentStyle={{ borderColor: "hsl(var(--border))", background: "hsl(var(--card))", color: "hsl(var(--foreground))" }} />
-                      <Area type="monotone" dataKey="gain" name="Guadagno" stroke="hsl(var(--primary))" fill="hsl(var(--primary) / 0.18)" strokeWidth={3} />
-                      <Area type="monotone" dataKey="taxes" name="Tasse" stroke="hsl(var(--accent))" fill="hsl(var(--accent) / 0.12)" strokeWidth={2} />
-                    </AreaChart>
-                  </ResponsiveContainer>
-                </div>
-              </Panel>
-              <Panel title="Fatture e tasse" icon={<Archive className="h-5 w-5" />}>
-                <div className="h-[320px]">
-                  <ResponsiveContainer width="100%" height="100%">
-                    <BarChart data={chartData} margin={{ left: 0, right: 8, top: 10, bottom: 0 }}>
-                      <CartesianGrid stroke="hsl(var(--border))" strokeDasharray="4 4" />
-                      <XAxis dataKey="year" stroke="hsl(var(--muted-foreground))" />
-                      <YAxis stroke="hsl(var(--muted-foreground))" tickFormatter={(value) => `${Number(value) / 1000}k`} />
-                      <Tooltip formatter={(value) => money(Number(value))} contentStyle={{ borderColor: "hsl(var(--border))", background: "hsl(var(--card))", color: "hsl(var(--foreground))" }} />
-                      <Bar dataKey="gross" name="Fatturato lordo" fill="hsl(var(--primary))" radius={[4, 4, 0, 0]} />
-                      <Bar dataKey="taxes" name="Tasse" fill="hsl(var(--accent))" radius={[4, 4, 0, 0]} />
-                    </BarChart>
-                  </ResponsiveContainer>
-                </div>
-              </Panel>
-            </div>
-          </TabsContent>
 
           <TabsContent value="fatture">
             <div className="grid gap-5 lg:grid-cols-[0.75fr_1.25fr]">
