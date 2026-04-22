@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Area, AreaChart, Bar, BarChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
-import { Archive, Calculator, Coins, Eye, FileCheck2, FileText, HandCoins, Plus, ReceiptText, ShieldCheck, UploadCloud } from "lucide-react";
+import { Archive, Calculator, Coins, Eye, FileCheck2, FileText, FolderOpen, HandCoins, Plus, ReceiptText, ShieldCheck, UploadCloud } from "lucide-react";
 import * as pdfjs from "pdfjs-dist";
 import pdfWorkerUrl from "pdfjs-dist/build/pdf.worker.mjs?url";
 import { Button } from "@/components/ui/button";
@@ -59,14 +59,15 @@ const pickDate = (text: string) => {
 };
 
 const extractInvoice = (text: string, fileName: string): Omit<Invoice, "id" | "pdf_url"> => {
-  const number = Number(text.match(/Numero:\s*(\d+)/i)?.[1] ?? fileName.match(/(?:^|\D)(\d{1,3})(?:\D|$)/)?.[1] ?? 1);
+  const number = Number(text.match(/(?:Numero|Fattura)(?:\s+documento)?\s*:?\s*(\d+)/i)?.[1] ?? fileName.match(/(?:^|\D)(\d{1,3})(?:\D|$)/)?.[1] ?? 1);
   const date = pickDate(text);
   const year = Number(date?.slice(0, 4) ?? new Date().getFullYear());
   const debtor = text.match(/Cessionario\/committente\s+(.+?)\s+-\s+C\.F\./i)?.[1]?.trim() ?? "Cliente non riconosciuto";
-  const firstLineAmount = parseAmount(text.match(/<td>([\d.]+,\d{2})<\/td>/i)?.[1] ?? text.match(/\n\s*([\d.]+,\d{2})\s*\n\s*Cassa previdenziale/i)?.[1]);
-  const pension = parseAmount(text.match(/Cassa previdenziale[\s\S]*?<td>(\d{1,3},\d{2})<\/td>/i)?.[1] ?? text.match(/4,00%[\s\S]*?(\d{1,3},\d{2})/i)?.[1]);
-  const stamp = parseAmount(text.match(/Bollo[\s\S]*?Importo\s*(\d{1,3},\d{2})/i)?.[1]);
-  const total = parseAmount(text.match(/TOTALE[\s\S]*?(\d{1,3}(?:\.\d{3})*,\d{2})/i)?.[1]) || firstLineAmount + pension + stamp;
+  const amounts = [...text.matchAll(/\b\d{1,3}(?:\.\d{3})*,\d{2}\b/g)].map((match) => match[0]);
+  const firstLineAmount = parseAmount(text.match(/(?:Imponibile|Prezzo totale|Totale imponibile)[\s\S]{0,80}?(\d{1,3}(?:\.\d{3})*,\d{2})/i)?.[1] ?? text.match(/\n\s*([\d.]+,\d{2})\s*\n\s*Cassa previdenziale/i)?.[1] ?? amounts[0]);
+  const pension = parseAmount(text.match(/(?:Cassa previdenziale|INARCASSA|Contributo)[\s\S]{0,140}?(\d{1,3}(?:\.\d{3})*,\d{2})/i)?.[1]);
+  const stamp = parseAmount(text.match(/(?:Bollo|Imposta di bollo)[\s\S]{0,80}?(\d{1,3}(?:\.\d{3})*,\d{2})/i)?.[1]);
+  const total = parseAmount(text.match(/(?:TOTALE|Importo totale documento)[\s\S]{0,100}?(\d{1,3}(?:\.\d{3})*,\d{2})/i)?.[1] ?? amounts.at(-1)) || firstLineAmount + pension + stamp;
 
   return {
     year,
@@ -187,7 +188,7 @@ const Index = () => {
         const invoiceRow = { ...cleanParsed, pdf_storage_path: storagePath, extracted_text: text, user_id: sessionUser };
         const { data, error } = await supabase
           .from("invoices")
-          .upsert([invoiceRow], { onConflict: "user_id,year,invoice_number" })
+          .insert([invoiceRow])
           .select("*")
           .single();
         if (error) throw error;
