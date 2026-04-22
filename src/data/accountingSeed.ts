@@ -1622,4 +1622,53 @@ export const excelTaxes = [
   }
 ] as const;
 
-export const historicalYears = [] as const;
+export const historicalYears = [
+  {
+    "year": 2021,
+    "invoices": 12,
+    "net": 18950.0,
+    "gross": 19732.0,
+    "taxes": 6423.96,
+    "gain": 13308.04
+  },
+  {
+    "year": 2022,
+    "invoices": 14,
+    "net": 34519.5,
+    "gross": 35928.28,
+    "taxes": 5061.95,
+    "gain": 30866.33
+  },
+  {
+    "year": 2023,
+    "invoices": 17,
+    "net": 48639.42,
+    "gross": 50619.0,
+    "taxes": 10439.37,
+    "gain": 40179.63
+  },
+  {
+    "year": 2024,
+    "invoices": 18,
+    "net": 45358.05,
+    "gross": 47208.37,
+    "taxes": 6097.91,
+    "gain": 41110.46
+  },
+  {
+    "year": 2025,
+    "invoices": 23,
+    "net": 52350.0,
+    "gross": 54490.0,
+    "taxes": 2349.5,
+    "gain": 52140.5
+  },
+  {
+    "year": 2026,
+    "invoices": 8,
+    "net": 18230.0,
+    "gross": 18975.2,
+    "taxes": 110.0,
+    "gain": 18865.2
+  }
+] as const;
