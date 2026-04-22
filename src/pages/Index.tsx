@@ -110,6 +110,7 @@ const Index = () => {
   const [deductionDraft, setDeductionDraft] = useState({ category: "Altro", description: "", amount: "", paid_at: "" });
   const [invoiceDraft, setInvoiceDraft] = useState({ invoice_number: "", debtor: "", invoice_date: "", taxable_amount: "", pension_fund: "", stamp_duty: "" });
   const [extraDraft, setExtraDraft] = useState({ description: "", amount: "", earned_at: "", notes: "" });
+  const [topChart, setTopChart] = useState<"gain" | "gross">("gain");
   const fileRef = useRef<HTMLInputElement>(null);
 
   const loadUserData = async (uid: string) => {
@@ -296,20 +297,38 @@ const Index = () => {
               <h1 className="font-display text-4xl font-bold leading-tight sm:text-6xl lg:text-7xl">Contabilità</h1>
             </div>
             <div className="rounded-lg border border-ledger-foreground/15 bg-surface-raised/95 p-4 text-foreground shadow-ledger">
-              <div className="mb-3 flex items-center gap-2">
-                <span className="rounded-md bg-surface-tint p-2 text-primary"><ShieldCheck className="h-5 w-5" /></span>
-                <h2 className="font-display text-xl font-bold">Andamento guadagni</h2>
+              <div className="mb-3 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                <div className="flex items-center gap-2">
+                  <span className="rounded-md bg-surface-tint p-2 text-primary"><ShieldCheck className="h-5 w-5" /></span>
+                  <h2 className="font-display text-xl font-bold">{topChart === "gain" ? "Andamento guadagni" : "Fatturato lordo, tasse ed extra"}</h2>
+                </div>
+                <div className="flex flex-wrap gap-2">
+                  <Button size="sm" variant={topChart === "gain" ? "ledger" : "outline"} onClick={() => setTopChart("gain")}>Andamento guadagni</Button>
+                  <Button size="sm" variant={topChart === "gross" ? "ledger" : "outline"} onClick={() => setTopChart("gross")}>Fatturato lordo, tasse ed extra</Button>
+                </div>
               </div>
               <div className="h-[260px]">
                 <ResponsiveContainer width="100%" height="100%">
-                  <AreaChart data={chartData} margin={{ left: 0, right: 8, top: 10, bottom: 0 }}>
-                    <CartesianGrid stroke="hsl(var(--border))" strokeDasharray="4 4" />
-                    <XAxis dataKey="year" stroke="hsl(var(--muted-foreground))" />
-                    <YAxis stroke="hsl(var(--muted-foreground))" tickFormatter={(value) => `${Number(value) / 1000}k`} />
-                    <Tooltip formatter={(value) => money(Number(value))} contentStyle={{ borderColor: "hsl(var(--border))", background: "hsl(var(--card))", color: "hsl(var(--foreground))" }} />
-                    <Area type="monotone" dataKey="gain" name="Guadagno" stroke="hsl(var(--primary))" fill="hsl(var(--primary) / 0.18)" strokeWidth={3} />
-                    <Area type="monotone" dataKey="taxes" name="Tasse" stroke="hsl(var(--accent))" fill="hsl(var(--accent) / 0.12)" strokeWidth={2} />
-                  </AreaChart>
+                  {topChart === "gain" ? (
+                    <AreaChart data={chartData} margin={{ left: 0, right: 8, top: 10, bottom: 0 }}>
+                      <CartesianGrid stroke="hsl(var(--border))" strokeDasharray="4 4" />
+                      <XAxis dataKey="year" stroke="hsl(var(--muted-foreground))" />
+                      <YAxis stroke="hsl(var(--muted-foreground))" tickFormatter={(value) => `${Number(value) / 1000}k`} />
+                      <Tooltip formatter={(value) => money(Number(value))} contentStyle={{ borderColor: "hsl(var(--border))", background: "hsl(var(--card))", color: "hsl(var(--foreground))" }} />
+                      <Area type="monotone" dataKey="gain" name="Guadagno" stroke="hsl(var(--primary))" fill="hsl(var(--primary) / 0.18)" strokeWidth={3} />
+                      <Area type="monotone" dataKey="taxes" name="Tasse" stroke="hsl(var(--accent))" fill="hsl(var(--accent) / 0.12)" strokeWidth={2} />
+                    </AreaChart>
+                  ) : (
+                    <BarChart data={chartData} margin={{ left: 0, right: 8, top: 10, bottom: 0 }}>
+                      <CartesianGrid stroke="hsl(var(--border))" strokeDasharray="4 4" />
+                      <XAxis dataKey="year" stroke="hsl(var(--muted-foreground))" />
+                      <YAxis stroke="hsl(var(--muted-foreground))" tickFormatter={(value) => `${Number(value) / 1000}k`} />
+                      <Tooltip formatter={(value) => money(Number(value))} contentStyle={{ borderColor: "hsl(var(--border))", background: "hsl(var(--card))", color: "hsl(var(--foreground))" }} />
+                      <Bar dataKey="gross" name="Fatturato lordo" fill="hsl(var(--primary))" radius={[4, 4, 0, 0]} />
+                      <Bar dataKey="taxes" name="Tasse" fill="hsl(var(--accent))" radius={[4, 4, 0, 0]} />
+                      <Bar dataKey="extra" name="Extra" fill="hsl(var(--secondary))" radius={[4, 4, 0, 0]} />
+                    </BarChart>
+                  )}
                 </ResponsiveContainer>
               </div>
             </div>
@@ -371,31 +390,12 @@ const Index = () => {
 
         <Tabs defaultValue="fatture" className="space-y-5">
           <TabsList className="h-auto flex-wrap justify-start bg-surface-raised p-1 shadow-soft">
-            <TabsTrigger value="fatture-tasse">Fatture e tasse</TabsTrigger>
             <TabsTrigger value="fatture">Archivio fatture</TabsTrigger>
             <TabsTrigger value="extra">Guadagni extra</TabsTrigger>
             <TabsTrigger value="tasse">Tasse</TabsTrigger>
             <TabsTrigger value="detrazioni">Detrazioni fiscali</TabsTrigger>
           </TabsList>
 
-
-          <TabsContent value="fatture-tasse">
-            <Panel title="Andamento fatturato lordo, tasse ed extra" icon={<Archive className="h-5 w-5" />}>
-              <div className="h-[340px]">
-                <ResponsiveContainer width="100%" height="100%">
-                  <BarChart data={chartData} margin={{ left: 0, right: 8, top: 10, bottom: 0 }}>
-                    <CartesianGrid stroke="hsl(var(--border))" strokeDasharray="4 4" />
-                    <XAxis dataKey="year" stroke="hsl(var(--muted-foreground))" />
-                    <YAxis stroke="hsl(var(--muted-foreground))" tickFormatter={(value) => `${Number(value) / 1000}k`} />
-                    <Tooltip formatter={(value) => money(Number(value))} contentStyle={{ borderColor: "hsl(var(--border))", background: "hsl(var(--card))", color: "hsl(var(--foreground))" }} />
-                    <Bar dataKey="gross" name="Fatturato lordo" fill="hsl(var(--primary))" radius={[4, 4, 0, 0]} />
-                    <Bar dataKey="taxes" name="Tasse" fill="hsl(var(--accent))" radius={[4, 4, 0, 0]} />
-                    <Bar dataKey="extra" name="Extra" fill="hsl(var(--secondary))" radius={[4, 4, 0, 0]} />
-                  </BarChart>
-                </ResponsiveContainer>
-              </div>
-            </Panel>
-          </TabsContent>
 
           <TabsContent value="fatture">
             <div className="grid gap-5 lg:grid-cols-[0.75fr_1.25fr]">
