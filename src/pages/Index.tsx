@@ -346,21 +346,55 @@ const Index = () => {
 
           <TabsContent value="tasse">
             <div className="grid gap-5 lg:grid-cols-[0.75fr_1.25fr]">
-              <Panel title="Nuova tassa" icon={<Plus className="h-5 w-5" />}>
+              <Panel title="Nuova spesa/tassa" icon={<Plus className="h-5 w-5" />}>
                 <div className="grid gap-3">
-                  <Input placeholder="Riferimento, es. INARCASSA" value={taxDraft.reference} onChange={(e) => setTaxDraft((draft) => ({ ...draft, reference: e.target.value }))} />
+                  <Select value={taxDraft.category} onValueChange={(category) => setTaxDraft((draft) => ({ ...draft, category, reference: category === "Altro" ? draft.reference : category }))}>
+                    <SelectTrigger><SelectValue placeholder="Categoria" /></SelectTrigger>
+                    <SelectContent>{taxCategories.map((category) => <SelectItem key={category} value={category}>{category}</SelectItem>)}</SelectContent>
+                  </Select>
+                  <Input placeholder={taxDraft.category === "Altro" ? "Specifica la voce" : "Descrizione facoltativa"} value={taxDraft.reference} onChange={(e) => setTaxDraft((draft) => ({ ...draft, reference: e.target.value }))} />
                   <Input placeholder="Importo, es. 916,50" value={taxDraft.amount} onChange={(e) => setTaxDraft((draft) => ({ ...draft, amount: e.target.value }))} />
                   <Input type="date" value={taxDraft.paid_at} onChange={(e) => setTaxDraft((draft) => ({ ...draft, paid_at: e.target.value }))} />
                   <Button variant="ledger" onClick={addTax}>Registra pagamento</Button>
                 </div>
               </Panel>
               <Panel title={`Tasse pagate ${year}`} icon={<FileText className="h-5 w-5" />}>
-                <LedgerTable headers={["Riferimento", "Data", "Importo"]} empty="Nessuna tassa registrata per questo anno.">
+                <LedgerTable headers={["Categoria", "Riferimento", "Data", "Importo"]} empty="Nessuna tassa registrata per questo anno.">
                   {selectedTaxes.map((tax) => (
                     <tr key={tax.id} className="border-b border-border/70 transition hover:bg-surface-tint/55">
+                      <td className="px-3 py-3 text-muted-foreground">{tax.category}</td>
                       <td className="px-3 py-3 font-semibold">{tax.reference}</td>
                       <td className="px-3 py-3 text-muted-foreground">{tax.paid_at ? new Date(tax.paid_at).toLocaleDateString("it-IT") : "—"}</td>
                       <td className="px-3 py-3 font-bold text-accent">{money(Number(tax.amount))}</td>
+                    </tr>
+                  ))}
+                </LedgerTable>
+              </Panel>
+            </div>
+          </TabsContent>
+
+          <TabsContent value="detrazioni">
+            <div className="grid gap-5 lg:grid-cols-[0.75fr_1.25fr]">
+              <Panel title="Nuova detrazione" icon={<Plus className="h-5 w-5" />}>
+                <div className="grid gap-3">
+                  <Select value={deductionDraft.category} onValueChange={(category) => setDeductionDraft((draft) => ({ ...draft, category }))}>
+                    <SelectTrigger><SelectValue placeholder="Categoria" /></SelectTrigger>
+                    <SelectContent>{taxCategories.map((category) => <SelectItem key={category} value={category}>{category}</SelectItem>)}</SelectContent>
+                  </Select>
+                  <Input placeholder="Descrizione detrazione" value={deductionDraft.description} onChange={(e) => setDeductionDraft((draft) => ({ ...draft, description: e.target.value }))} />
+                  <Input placeholder="Importo, es. 150,00" value={deductionDraft.amount} onChange={(e) => setDeductionDraft((draft) => ({ ...draft, amount: e.target.value }))} />
+                  <Input type="date" value={deductionDraft.paid_at} onChange={(e) => setDeductionDraft((draft) => ({ ...draft, paid_at: e.target.value }))} />
+                  <Button variant="ledger" onClick={addDeduction}>Registra detrazione</Button>
+                </div>
+              </Panel>
+              <Panel title={`Detrazioni fiscali ${year}`} icon={<FileText className="h-5 w-5" />}>
+                <LedgerTable headers={["Categoria", "Descrizione", "Data", "Importo"]} empty="Nessuna detrazione registrata per questo anno.">
+                  {selectedDeductions.map((deduction) => (
+                    <tr key={deduction.id} className="border-b border-border/70 transition hover:bg-surface-tint/55">
+                      <td className="px-3 py-3 text-muted-foreground">{deduction.category}</td>
+                      <td className="px-3 py-3 font-semibold">{deduction.description}</td>
+                      <td className="px-3 py-3 text-muted-foreground">{deduction.paid_at ? new Date(deduction.paid_at).toLocaleDateString("it-IT") : "—"}</td>
+                      <td className="px-3 py-3 font-bold text-primary">{money(Number(deduction.amount))}</td>
                     </tr>
                   ))}
                 </LedgerTable>
