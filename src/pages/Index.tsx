@@ -162,7 +162,8 @@ const Index = () => {
         await supabase.storage.from("invoice-pdfs").upload(storagePath, file, { upsert: true });
         const { data: signed } = await supabase.storage.from("invoice-pdfs").createSignedUrl(storagePath, 60 * 60);
         url = signed?.signedUrl ?? url;
-        const invoiceRow = { ...parsed, pdf_storage_path: storagePath, extracted_text: text, user_id: sessionUser };
+        const { source: _source, ...cleanParsed } = parsed;
+        const invoiceRow = { ...cleanParsed, pdf_storage_path: storagePath, extracted_text: text, user_id: sessionUser };
         const { data, error } = await supabase
           .from("invoices")
           .upsert([invoiceRow], { onConflict: "user_id,year,invoice_number" })
@@ -186,15 +187,29 @@ const Index = () => {
   const addTax = async () => {
     const amount = parseAmount(taxDraft.amount);
     if (!taxDraft.reference || !amount) return;
-    const draft = { year, reference: taxDraft.reference, amount, paid_at: taxDraft.paid_at || null, notes: null };
+    const draft = { year, category: taxDraft.category, reference: taxDraft.reference, amount, paid_at: taxDraft.paid_at || null, notes: null };
     if (sessionUser) {
-      const { data, error } = await supabase.from("tax_payments").insert({ ...draft, user_id: sessionUser }).select("*").single();
+      const { data, error } = await (supabase as any).from("tax_payments").insert({ ...draft, user_id: sessionUser }).select("*").single();
       if (error) return toast.error("Tassa non salvata", { description: error.message });
       setTaxes((items) => [data, ...items]);
     } else {
       setTaxes((items) => [{ ...draft, id: crypto.randomUUID() }, ...items]);
     }
-    setTaxDraft({ reference: "", amount: "", paid_at: "" });
+    setTaxDraft({ category: "Ordine ingegneri", reference: "", amount: "", paid_at: "" });
+  };
+
+  const addDeduction = async () => {
+    const amount = parseAmount(deductionDraft.amount);
+    if (!deductionDraft.description || !amount) return;
+    const draft = { year, category: deductionDraft.category, description: deductionDraft.description, amount, paid_at: deductionDraft.paid_at || null, notes: null };
+    if (sessionUser) {
+      const { data, error } = await (supabase as any).from("tax_deductions").insert({ ...draft, user_id: sessionUser }).select("*").single();
+      if (error) return toast.error("Detrazione non salvata", { description: error.message });
+      setDeductions((items) => [data, ...items]);
+    } else {
+      setDeductions((items) => [{ ...draft, id: crypto.randomUUID() }, ...items]);
+    }
+    setDeductionDraft({ category: "Altro", description: "", amount: "", paid_at: "" });
   };
 
   const openPdf = async (invoice: Invoice) => {
