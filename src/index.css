@@ -1,3 +1,5 @@
+@import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Source+Sans+3:wght@400;500;600;700&display=swap');
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
@@ -8,35 +10,48 @@ All colors MUST be HSL.
 
 @layer base {
   :root {
-    --background: 0 0% 100%;
-    --foreground: 222.2 84% 4.9%;
+    --background: 42 45% 96%;
+    --foreground: 206 44% 13%;
 
-    --card: 0 0% 100%;
-    --card-foreground: 222.2 84% 4.9%;
+    --card: 40 50% 99%;
+    --card-foreground: 206 44% 13%;
 
-    --popover: 0 0% 100%;
-    --popover-foreground: 222.2 84% 4.9%;
+    --popover: 40 50% 99%;
+    --popover-foreground: 206 44% 13%;
 
-    --primary: 222.2 47.4% 11.2%;
-    --primary-foreground: 210 40% 98%;
+    --primary: 174 68% 24%;
+    --primary-foreground: 42 45% 96%;
 
-    --secondary: 210 40% 96.1%;
-    --secondary-foreground: 222.2 47.4% 11.2%;
+    --secondary: 31 88% 58%;
+    --secondary-foreground: 206 44% 13%;
 
-    --muted: 210 40% 96.1%;
-    --muted-foreground: 215.4 16.3% 46.9%;
+    --muted: 45 34% 88%;
+    --muted-foreground: 202 18% 36%;
 
-    --accent: 210 40% 96.1%;
-    --accent-foreground: 222.2 47.4% 11.2%;
+    --accent: 9 78% 61%;
+    --accent-foreground: 42 45% 96%;
 
     --destructive: 0 84.2% 60.2%;
     --destructive-foreground: 210 40% 98%;
 
-    --border: 214.3 31.8% 91.4%;
-    --input: 214.3 31.8% 91.4%;
-    --ring: 222.2 84% 4.9%;
+    --border: 42 22% 79%;
+    --input: 42 22% 84%;
+    --ring: 174 68% 24%;
 
-    --radius: 0.5rem;
+    --radius: 0.45rem;
+
+    --success: 143 45% 35%;
+    --success-foreground: 42 45% 96%;
+    --warning: 42 93% 58%;
+    --warning-foreground: 206 44% 13%;
+    --ledger: 204 44% 18%;
+    --ledger-foreground: 42 45% 96%;
+    --surface-raised: 40 50% 99%;
+    --surface-tint: 174 48% 93%;
+    --gradient-hero: linear-gradient(135deg, hsl(174 68% 24%), hsl(204 44% 18%) 58%, hsl(31 88% 58%));
+    --gradient-paper: linear-gradient(180deg, hsl(40 50% 99%), hsl(42 45% 96%));
+    --shadow-ledger: 0 24px 70px -36px hsl(204 44% 18% / 0.55);
+    --shadow-soft: 0 14px 42px -28px hsl(204 44% 18% / 0.38);
 
     --sidebar-background: 0 0% 98%;
 
@@ -100,6 +115,20 @@ All colors MUST be HSL.
   }
 
   body {
-    @apply bg-background text-foreground;
+    @apply bg-background text-foreground antialiased;
+    font-family: 'Source Sans 3', system-ui, sans-serif;
+    background-image: radial-gradient(circle at top left, hsl(var(--surface-tint) / 0.75), transparent 34%), var(--gradient-paper);
+  }
+
+  h1, h2, h3, .font-display {
+    font-family: 'Space Grotesk', system-ui, sans-serif;
+    letter-spacing: 0;
+  }
+}
+
+@layer utilities {
+  .ledger-grid {
+    background-image: linear-gradient(hsl(var(--border) / 0.45) 1px, transparent 1px), linear-gradient(90deg, hsl(var(--border) / 0.45) 1px, transparent 1px);
+    background-size: 28px 28px;
   }
 }
