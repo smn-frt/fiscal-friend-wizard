@@ -536,6 +536,24 @@ const Index = () => {
             </div>
           </TabsContent>
         </Tabs>
+
+        <div className="mt-8">
+          <Panel title={`PDF fatture ${year === "all" ? "totale" : year}`} icon={<FolderOpen className="h-5 w-5" />} action={<Button variant="warm" size="sm" onClick={() => fileRef.current?.click()}><UploadCloud className="h-4 w-4" /> Importa PDF</Button>}>
+            <LedgerTable headers={["Anno", "N°", "Cliente", "Data", "File", "Totale", "Apri"]} empty="Nessun PDF archiviato per la selezione corrente.">
+              {selectedPdfInvoices.map((invoice) => (
+                <tr key={invoice.id} className="border-b border-border/70 transition hover:bg-surface-tint/55">
+                  <td className="px-3 py-3 text-muted-foreground">{invoice.year}</td>
+                  <td className="px-3 py-3 font-semibold">{invoice.invoice_number}</td>
+                  <td className="px-3 py-3">{invoice.debtor}</td>
+                  <td className="px-3 py-3 text-muted-foreground">{invoice.invoice_date ? new Date(invoice.invoice_date).toLocaleDateString("it-IT") : "—"}</td>
+                  <td className="px-3 py-3 text-muted-foreground">{invoice.pdf_file_name ?? "Fattura PDF"}</td>
+                  <td className="px-3 py-3 font-bold text-primary">{money(Number(invoice.gross_total))}</td>
+                  <td className="px-3 py-3"><Button variant="ghost" size="icon" onClick={() => openPdf(invoice)} aria-label="Apri PDF"><Eye className="h-4 w-4" /></Button></td>
+                </tr>
+              ))}
+            </LedgerTable>
+          </Panel>
+        </div>
       </section>
     </main>
   );
@@ -548,8 +566,8 @@ const Metric = ({ label, value }: { label: string; value: string }) => (
   </div>
 );
 
-const SummaryTile = ({ icon, label, value }: { icon: React.ReactNode; label: string; value: string }) => (
-  <div className="rounded-md border border-border bg-surface-tint p-4">
+const SummaryTile = ({ icon, label, value, wide = false }: { icon: React.ReactNode; label: string; value: string; wide?: boolean }) => (
+  <div className={`rounded-md border border-border bg-surface-tint p-4 ${wide ? "sm:col-span-2" : ""}`}>
     <div className="mb-3 flex items-center gap-2 text-primary">{icon}<span className="text-sm font-semibold uppercase">{label}</span></div>
     <p className="font-display text-2xl font-bold">{value}</p>
   </div>
