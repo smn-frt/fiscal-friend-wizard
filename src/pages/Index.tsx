@@ -5,9 +5,11 @@ import * as pdfjs from "pdfjs-dist";
 import pdfWorkerUrl from "pdfjs-dist/build/pdf.worker.mjs?url";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import { excelInvoices, excelTaxes, historicalYears } from "@/data/accountingSeed";
 
 pdfjs.GlobalWorkerOptions.workerSrc = pdfWorkerUrl;
 
@@ -24,43 +26,17 @@ type Invoice = {
   pdf_file_name: string | null;
   pdf_storage_path: string | null;
   pdf_url?: string;
+  source?: string;
 };
 
-type TaxPayment = { id: string; year: number; reference: string; amount: number; paid_at?: string | null; notes?: string | null };
+type TaxPayment = { id: string; year: number; category: string; reference: string; amount: number; paid_at?: string | null; notes?: string | null; source?: string };
 
-const historicalYears = [
-  { year: 2021, invoices: 12, net: 18950, gross: 19732, taxes: 6423.96, gain: 13308.04 },
-  { year: 2022, invoices: 14, net: 34519.5, gross: 35928.28, taxes: 5061.95, gain: 30866.33 },
-  { year: 2023, invoices: 17, net: 48639.42, gross: 50619, taxes: 10439.37, gain: 40179.63 },
-  { year: 2024, invoices: 18, net: 45358.05, gross: 47208.37, taxes: 6097.91, gain: 41110.46 },
-  { year: 2025, invoices: 23, net: 52350, gross: 54490, taxes: 2349.5, gain: 52140.5 },
-];
+type TaxDeduction = { id: string; year: number; category: string; description: string; amount: number; paid_at?: string | null; notes?: string | null };
 
-const initialInvoices: Invoice[] = [
-  {
-    id: "sample-2026-1",
-    year: 2026,
-    invoice_number: 1,
-    debtor: "INTAGO ENGINEERING S.R.L.",
-    invoice_date: "2026-01-07",
-    taxable_amount: 3000,
-    pension_fund: 120,
-    stamp_duty: 2,
-    gross_total: 3122,
-    pdf_file_name: "01_ITFRTSMN93P22H501R_M4uia.pdf",
-    pdf_storage_path: null,
-    pdf_url: "/invoices/01_ITFRTSMN93P22H501R_M4uia.pdf",
-  },
-];
+const taxCategories = ["Ordine ingegneri", "Assicurazione professionale", "INARCASSA (contributo soggettivo)", "INARCASSA (contributo integrativo)", "INARCASSA (contributo paternità)", "Spese F24", "Altro"];
 
-const initialTaxes: TaxPayment[] = [
-  { id: "tax-2026-ordine", year: 2026, reference: "ORDINE INGEGNERI", amount: 110 },
-  { id: "tax-2025-ordine", year: 2025, reference: "ORDINE INGEGNERI", amount: 110 },
-  { id: "tax-2025-ass", year: 2025, reference: "ASSICURAZIONE PROFESSIONALE", amount: 211 },
-  { id: "tax-2025-inarcassa-s", year: 2025, reference: "INARCASSA SOGGETTIVO", amount: 916.5 },
-  { id: "tax-2025-inarcassa-i", year: 2025, reference: "INARCASSA INTEGRATIVO", amount: 278.5 },
-  { id: "tax-2025-ade", year: 2025, reference: "ADE P.IVA", amount: 742.5 },
-];
+const initialInvoices = excelInvoices as unknown as Invoice[];
+const initialTaxes = excelTaxes as unknown as TaxPayment[];
 
 const eur = new Intl.NumberFormat("it-IT", { style: "currency", currency: "EUR" });
 
