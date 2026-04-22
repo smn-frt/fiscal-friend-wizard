@@ -92,12 +92,14 @@ const extractPdfText = async (file: File) => {
 const Index = () => {
   const [invoices, setInvoices] = useState<Invoice[]>(initialInvoices);
   const [taxes, setTaxes] = useState<TaxPayment[]>(initialTaxes);
+  const [deductions, setDeductions] = useState<TaxDeduction[]>([]);
   const [year, setYear] = useState(2026);
   const [uploading, setUploading] = useState(false);
   const [sessionUser, setSessionUser] = useState<string | null>(null);
   const [authDraft, setAuthDraft] = useState({ email: "", password: "" });
   const [authMode, setAuthMode] = useState<"signin" | "signup">("signup");
-  const [taxDraft, setTaxDraft] = useState({ reference: "", amount: "", paid_at: "" });
+  const [taxDraft, setTaxDraft] = useState({ category: "Ordine ingegneri", reference: "", amount: "", paid_at: "" });
+  const [deductionDraft, setDeductionDraft] = useState({ category: "Altro", description: "", amount: "", paid_at: "" });
   const fileRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
@@ -106,12 +108,14 @@ const Index = () => {
       const uid = session.session?.user.id ?? null;
       setSessionUser(uid);
       if (!uid) return;
-      const [{ data: invoiceRows }, { data: taxRows }] = await Promise.all([
+      const [{ data: invoiceRows }, { data: taxRows }, { data: deductionRows }] = await Promise.all([
         supabase.from("invoices").select("*").order("year", { ascending: false }).order("invoice_number", { ascending: false }),
         supabase.from("tax_payments").select("*").order("year", { ascending: false }),
+        (supabase as any).from("tax_deductions").select("*").order("year", { ascending: false }),
       ]);
-      if (invoiceRows?.length) setInvoices([initialInvoices[0], ...invoiceRows.filter((row) => row.id !== initialInvoices[0].id)]);
-      if (taxRows?.length) setTaxes([...initialTaxes, ...taxRows]);
+      if (invoiceRows?.length) setInvoices([...invoiceRows, ...initialInvoices.filter((seed) => !invoiceRows.some((row) => row.year === seed.year && row.invoice_number === seed.invoice_number))]);
+      if (taxRows?.length) setTaxes([...taxRows.map((row) => ({ ...row, category: row.category ?? "Altro" })), ...initialTaxes]);
+      if (deductionRows?.length) setDeductions(deductionRows);
     };
     boot();
   }, []);
@@ -142,6 +146,7 @@ const Index = () => {
 
   const selectedInvoices = invoices.filter((item) => item.year === year).sort((a, b) => a.invoice_number - b.invoice_number);
   const selectedTaxes = taxes.filter((item) => item.year === year);
+  const selectedDeductions = deductions.filter((item) => item.year === year);
   const current = chartData.find((item) => item.year === year) ?? { net: 0, gross: 0, taxes: 0, gain: 0, invoices: 0 };
 
   const handleUpload = async (file?: File) => {
