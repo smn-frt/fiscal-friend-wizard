@@ -76,7 +76,7 @@ const pickDate = (text: string) => {
   return match ? `${match[3]}-${match[2]}-${match[1]}` : null;
 };
 
-const extractInvoice = (text: string, fileName: string): Omit<Invoice, "id"> => {
+const extractInvoice = (text: string, fileName: string): Omit<Invoice, "id" | "pdf_url"> => {
   const number = Number(text.match(/Numero:\s*(\d+)/i)?.[1] ?? fileName.match(/(?:^|\D)(\d{1,3})(?:\D|$)/)?.[1] ?? 1);
   const date = pickDate(text);
   const year = Number(date?.slice(0, 4) ?? new Date().getFullYear());
