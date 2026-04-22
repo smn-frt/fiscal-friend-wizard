@@ -174,9 +174,10 @@ const Index = () => {
         await supabase.storage.from("invoice-pdfs").upload(storagePath, file, { upsert: true });
         const { data: signed } = await supabase.storage.from("invoice-pdfs").createSignedUrl(storagePath, 60 * 60);
         url = signed?.signedUrl ?? url;
+        const invoiceRow = { ...parsed, pdf_storage_path: storagePath, extracted_text: text, user_id: sessionUser };
         const { data, error } = await supabase
           .from("invoices")
-          .upsert({ ...parsed, pdf_storage_path: storagePath, extracted_text: text, user_id: sessionUser }, { onConflict: "user_id,year,invoice_number" })
+          .upsert([invoiceRow], { onConflict: "user_id,year,invoice_number" })
           .select("*")
           .single();
         if (error) throw error;
