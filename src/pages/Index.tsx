@@ -241,6 +241,18 @@ const Index = () => {
               <Metric label="Tasse/costi" value={money(current.taxes)} />
               <Metric label="Guadagno" value={money(current.gain)} />
             </div>
+            {!sessionUser ? (
+              <div className="rounded-lg border border-ledger-foreground/15 bg-ledger-foreground/10 p-4 backdrop-blur-sm">
+                <div className="grid gap-3 sm:grid-cols-[1fr_1fr_auto]">
+                  <Input className="bg-ledger-foreground/95" type="email" placeholder="email" value={authDraft.email} onChange={(e) => setAuthDraft((draft) => ({ ...draft, email: e.target.value }))} />
+                  <Input className="bg-ledger-foreground/95" type="password" placeholder="password" value={authDraft.password} onChange={(e) => setAuthDraft((draft) => ({ ...draft, password: e.target.value }))} />
+                  <Button variant="warm" onClick={handleAuth}>{authMode === "signup" ? "Crea archivio" : "Accedi"}</Button>
+                </div>
+                <button className="mt-3 text-sm text-secondary underline-offset-4 hover:underline" onClick={() => setAuthMode((mode) => (mode === "signup" ? "signin" : "signup"))}>
+                  {authMode === "signup" ? "Ho già un account" : "Crea un nuovo account"}
+                </button>
+              </div>
+            ) : null}
           </div>
           <div className="relative my-auto overflow-hidden rounded-lg border border-ledger-foreground/15 bg-surface-raised/95 p-4 text-foreground shadow-ledger">
             <div className="pointer-events-none absolute inset-x-4 top-0 h-16 animate-scan-line bg-gradient-to-b from-secondary/0 via-secondary/25 to-secondary/0 motion-reduce:hidden" />
