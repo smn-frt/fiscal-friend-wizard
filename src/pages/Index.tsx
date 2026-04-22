@@ -287,6 +287,7 @@ const Index = () => {
             <TabsTrigger value="dashboard">Dashboard</TabsTrigger>
             <TabsTrigger value="fatture">Fatture</TabsTrigger>
             <TabsTrigger value="tasse">Tasse pagate</TabsTrigger>
+            <TabsTrigger value="detrazioni">Detrazioni fiscali</TabsTrigger>
           </TabsList>
 
           <TabsContent value="dashboard" className="space-y-5">
@@ -324,8 +325,8 @@ const Index = () => {
           </TabsContent>
 
           <TabsContent value="fatture">
-            <Panel title={`Fatture ${year}`} icon={<FileCheck2 className="h-5 w-5" />} action={<Button variant="warm" size="sm" onClick={() => fileRef.current?.click()}><Plus className="h-4 w-4" /> PDF</Button>}>
-              <LedgerTable headers={["N°", "Cliente", "Data", "Imponibile", "Cassa", "Bollo", "Totale", "PDF"]} empty="Nessuna fattura archiviata per questo anno.">
+            <Panel title={`Archivio fatture ${year}`} icon={<FileCheck2 className="h-5 w-5" />} action={<Button variant="warm" size="sm" onClick={() => fileRef.current?.click()}><Plus className="h-4 w-4" /> Carica PDF</Button>}>
+              <LedgerTable headers={["N°", "Cliente", "Data", "Imponibile", "Cassa", "Bollo", "Totale", "Origine", "PDF"]} empty="Nessuna fattura archiviata per questo anno.">
                 {selectedInvoices.map((invoice) => (
                   <tr key={invoice.id} className="border-b border-border/70 transition hover:bg-surface-tint/55">
                     <td className="px-3 py-3 font-semibold">{invoice.invoice_number}</td>
@@ -335,7 +336,8 @@ const Index = () => {
                     <td className="px-3 py-3">{money(Number(invoice.pension_fund))}</td>
                     <td className="px-3 py-3">{money(Number(invoice.stamp_duty))}</td>
                     <td className="px-3 py-3 font-bold text-primary">{money(Number(invoice.gross_total))}</td>
-                    <td className="px-3 py-3"><Button variant="ghost" size="icon" onClick={() => openPdf(invoice)} aria-label="Apri PDF"><Eye className="h-4 w-4" /></Button></td>
+                    <td className="px-3 py-3 text-muted-foreground">{invoice.source === "excel" ? "Excel" : "PDF"}</td>
+                    <td className="px-3 py-3"><Button variant="ghost" size="icon" onClick={() => openPdf(invoice)} aria-label="Apri PDF" disabled={!invoice.pdf_url && !invoice.pdf_storage_path}><Eye className="h-4 w-4" /></Button></td>
                   </tr>
                 ))}
               </LedgerTable>
