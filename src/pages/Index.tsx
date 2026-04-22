@@ -412,7 +412,6 @@ const Index = () => {
         <Tabs defaultValue="fatture" className="space-y-5">
           <TabsList className="h-auto flex-wrap justify-start bg-surface-raised p-1 shadow-soft">
             <TabsTrigger value="fatture">Archivio fatture</TabsTrigger>
-            <TabsTrigger value="pdf">PDF fatture</TabsTrigger>
             <TabsTrigger value="extra">Guadagni extra</TabsTrigger>
             <TabsTrigger value="tasse">Tasse</TabsTrigger>
             <TabsTrigger value="detrazioni">Detrazioni fiscali</TabsTrigger>
@@ -451,23 +450,6 @@ const Index = () => {
                 </LedgerTable>
               </Panel>
             </div>
-          </TabsContent>
-
-          <TabsContent value="pdf">
-            <Panel title={`PDF fatture ${year}`} icon={<FolderOpen className="h-5 w-5" />} action={<Button variant="warm" size="sm" onClick={() => fileRef.current?.click()}><UploadCloud className="h-4 w-4" /> Importa PDF</Button>}>
-              <LedgerTable headers={["N°", "Cliente", "Data", "File", "Totale", "Apri"]} empty="Nessun PDF archiviato per questo anno.">
-                {selectedPdfInvoices.map((invoice) => (
-                  <tr key={invoice.id} className="border-b border-border/70 transition hover:bg-surface-tint/55">
-                    <td className="px-3 py-3 font-semibold">{invoice.invoice_number}</td>
-                    <td className="px-3 py-3">{invoice.debtor}</td>
-                    <td className="px-3 py-3 text-muted-foreground">{invoice.invoice_date ? new Date(invoice.invoice_date).toLocaleDateString("it-IT") : "—"}</td>
-                    <td className="px-3 py-3 text-muted-foreground">{invoice.pdf_file_name ?? "Fattura PDF"}</td>
-                    <td className="px-3 py-3 font-bold text-primary">{money(Number(invoice.gross_total))}</td>
-                    <td className="px-3 py-3"><Button variant="ghost" size="icon" onClick={() => openPdf(invoice)} aria-label="Apri PDF"><Eye className="h-4 w-4" /></Button></td>
-                  </tr>
-                ))}
-              </LedgerTable>
-            </Panel>
           </TabsContent>
 
           <TabsContent value="extra">
