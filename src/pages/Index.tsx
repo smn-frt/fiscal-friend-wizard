@@ -226,7 +226,7 @@ const Index = () => {
     const number = Number(invoiceDraft.invoice_number);
     if (!number || !invoiceDraft.debtor || !taxable) return toast.error("Inserisci numero, cliente e imponibile della fattura");
     const draft = {
-      year,
+      year: activeYearForNew,
       invoice_number: number,
       debtor: invoiceDraft.debtor,
       invoice_date: invoiceDraft.invoice_date || null,
@@ -251,7 +251,7 @@ const Index = () => {
   const addTax = async () => {
     const amount = parseAmount(taxDraft.amount);
     if (!taxDraft.reference || !amount) return;
-    const draft = { year, category: taxDraft.category, reference: taxDraft.reference, amount, paid_at: taxDraft.paid_at || null, notes: null };
+    const draft = { year: activeYearForNew, category: taxDraft.category, reference: taxDraft.reference, amount, paid_at: taxDraft.paid_at || null, notes: null };
     if (sessionUser) {
       const { data, error } = await (supabase as any).from("tax_payments").insert({ ...draft, user_id: sessionUser }).select("*").single();
       if (error) return toast.error("Tassa non salvata", { description: error.message });
@@ -265,7 +265,7 @@ const Index = () => {
   const addDeduction = async () => {
     const amount = parseAmount(deductionDraft.amount);
     if (!deductionDraft.description || !amount) return;
-    const draft = { year, category: deductionDraft.category, description: deductionDraft.description, amount, paid_at: deductionDraft.paid_at || null, notes: null };
+    const draft = { year: activeYearForNew, category: deductionDraft.category, description: deductionDraft.description, amount, paid_at: deductionDraft.paid_at || null, notes: null };
     if (sessionUser) {
       const { data, error } = await (supabase as any).from("tax_deductions").insert({ ...draft, user_id: sessionUser }).select("*").single();
       if (error) return toast.error("Detrazione non salvata", { description: error.message });
@@ -279,7 +279,7 @@ const Index = () => {
   const addExtra = async () => {
     const amount = parseAmount(extraDraft.amount);
     if (!extraDraft.description || !amount) return toast.error("Inserisci descrizione e importo del guadagno extra");
-    const draft = { year, description: extraDraft.description, amount, earned_at: extraDraft.earned_at || null, notes: extraDraft.notes || null };
+    const draft = { year: activeYearForNew, description: extraDraft.description, amount, earned_at: extraDraft.earned_at || null, notes: extraDraft.notes || null };
     if (sessionUser) {
       const { data, error } = await (supabase as any).from("extra_earnings").insert({ ...draft, user_id: sessionUser }).select("*").single();
       if (error) return toast.error("Guadagno extra non salvato", { description: error.message });
