@@ -102,7 +102,7 @@ const Index = () => {
   const [taxes, setTaxes] = useState<TaxPayment[]>(initialTaxes);
   const [deductions, setDeductions] = useState<TaxDeduction[]>([]);
   const [extraEarnings, setExtraEarnings] = useState<ExtraEarning[]>(initialExtras);
-  const [year, setYear] = useState(2026);
+  const [year, setYear] = useState<number | "all">(2026);
   const [uploading, setUploading] = useState(false);
   const [sessionUser, setSessionUser] = useState<string | null>(null);
   const [authDraft, setAuthDraft] = useState({ email: "", password: "" });
@@ -164,13 +164,25 @@ const Index = () => {
     return dynamic.sort((a, b) => a.year - b.year);
   }, [invoices, taxes, extraEarnings, yearOptions]);
 
-  const selectedInvoices = invoices.filter((item) => item.year === year).sort((a, b) => a.invoice_number - b.invoice_number);
-  const selectedTaxes = taxes.filter((item) => item.year === year);
-  const selectedDeductions = deductions.filter((item) => item.year === year);
-  const selectedExtras = extraEarnings.filter((item) => item.year === year);
+  const selectedInvoices = invoices.filter((item) => year === "all" || item.year === year).sort((a, b) => a.year - b.year || a.invoice_number - b.invoice_number);
+  const selectedTaxes = taxes.filter((item) => year === "all" || item.year === year);
+  const selectedDeductions = deductions.filter((item) => year === "all" || item.year === year);
+  const selectedExtras = extraEarnings.filter((item) => year === "all" || item.year === year);
   const selectedPdfInvoices = selectedInvoices.filter((item) => item.pdf_file_name || item.pdf_storage_path || item.pdf_url);
-  const current = chartData.find((item) => item.year === year) ?? { net: 0, gross: 0, taxes: 0, extra: 0, gain: 0, invoices: 0 };
+  const totalSummary = chartData.reduce((total, item) => ({
+    net: total.net + Number(item.net),
+    gross: total.gross + Number(item.gross),
+    taxes: total.taxes + Number(item.taxes),
+    extra: total.extra + Number(item.extra ?? 0),
+    gain: total.gain + Number(item.gain),
+    invoices: total.invoices + Number(item.invoices),
+    pension: total.pension + invoices.filter((invoice) => invoice.year === item.year).reduce((sum, invoice) => sum + Number(invoice.pension_fund), 0),
+  }), { net: 0, gross: 0, taxes: 0, extra: 0, gain: 0, invoices: 0, pension: 0 });
+  const yearlySummary = chartData.find((item) => item.year === year);
+  const yearlyPension = year === "all" ? 0 : invoices.filter((item) => item.year === year).reduce((sum, item) => sum + Number(item.pension_fund), 0);
+  const current = year === "all" ? totalSummary : { ...(yearlySummary ?? { net: 0, gross: 0, taxes: 0, extra: 0, gain: 0, invoices: 0 }), pension: yearlyPension };
   const manualGross = parseAmount(invoiceDraft.taxable_amount) + parseAmount(invoiceDraft.pension_fund) + parseAmount(invoiceDraft.stamp_duty);
+  const activeYearForNew = year === "all" ? new Date().getFullYear() : year;
 
   const handleUpload = async (file?: File) => {
     if (!file) return;
@@ -214,7 +226,7 @@ const Index = () => {
     const number = Number(invoiceDraft.invoice_number);
     if (!number || !invoiceDraft.debtor || !taxable) return toast.error("Inserisci numero, cliente e imponibile della fattura");
     const draft = {
-      year,
+      year: activeYearForNew,
       invoice_number: number,
       debtor: invoiceDraft.debtor,
       invoice_date: invoiceDraft.invoice_date || null,
@@ -239,7 +251,7 @@ const Index = () => {
   const addTax = async () => {
     const amount = parseAmount(taxDraft.amount);
     if (!taxDraft.reference || !amount) return;
-    const draft = { year, category: taxDraft.category, reference: taxDraft.reference, amount, paid_at: taxDraft.paid_at || null, notes: null };
+    const draft = { year: activeYearForNew, category: taxDraft.category, reference: taxDraft.reference, amount, paid_at: taxDraft.paid_at || null, notes: null };
     if (sessionUser) {
       const { data, error } = await (supabase as any).from("tax_payments").insert({ ...draft, user_id: sessionUser }).select("*").single();
       if (error) return toast.error("Tassa non salvata", { description: error.message });
@@ -253,7 +265,7 @@ const Index = () => {
   const addDeduction = async () => {
     const amount = parseAmount(deductionDraft.amount);
     if (!deductionDraft.description || !amount) return;
-    const draft = { year, category: deductionDraft.category, description: deductionDraft.description, amount, paid_at: deductionDraft.paid_at || null, notes: null };
+    const draft = { year: activeYearForNew, category: deductionDraft.category, description: deductionDraft.description, amount, paid_at: deductionDraft.paid_at || null, notes: null };
     if (sessionUser) {
       const { data, error } = await (supabase as any).from("tax_deductions").insert({ ...draft, user_id: sessionUser }).select("*").single();
       if (error) return toast.error("Detrazione non salvata", { description: error.message });
@@ -267,7 +279,7 @@ const Index = () => {
   const addExtra = async () => {
     const amount = parseAmount(extraDraft.amount);
     if (!extraDraft.description || !amount) return toast.error("Inserisci descrizione e importo del guadagno extra");
-    const draft = { year, description: extraDraft.description, amount, earned_at: extraDraft.earned_at || null, notes: extraDraft.notes || null };
+    const draft = { year: activeYearForNew, description: extraDraft.description, amount, earned_at: extraDraft.earned_at || null, notes: extraDraft.notes || null };
     if (sessionUser) {
       const { data, error } = await (supabase as any).from("extra_earnings").insert({ ...draft, user_id: sessionUser }).select("*").single();
       if (error) return toast.error("Guadagno extra non salvato", { description: error.message });
@@ -338,7 +350,7 @@ const Index = () => {
               <Metric label="Fatturato lordo" value={money(current.gross)} />
               <Metric label="Tasse totali" value={money(current.taxes)} />
               <Metric label="Extra" value={money(current.extra ?? 0)} />
-              <Metric label="Guadagno" value={money(current.gain)} />
+              <Metric label="Guadagno totale" value={money(current.gross - current.taxes + (current.extra ?? 0))} />
             </div>
             {!sessionUser ? (
               <div className="rounded-lg border border-ledger-foreground/15 bg-ledger-foreground/10 p-4 backdrop-blur-sm">
@@ -357,19 +369,23 @@ const Index = () => {
             <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
               <div>
                 <p className="text-sm font-semibold uppercase text-primary">Anno selezionato</p>
-                <h2 className="font-display text-2xl font-bold">Riepilogo {year}</h2>
+                <h2 className="font-display text-2xl font-bold">Riepilogo {year === "all" ? "totale" : year}</h2>
               </div>
-              <Select value={String(year)} onValueChange={(value) => setYear(Number(value))}>
+              <Select value={String(year)} onValueChange={(value) => setYear(value === "all" ? "all" : Number(value))}>
                 <SelectTrigger className="w-full sm:w-40"><SelectValue placeholder="Anno" /></SelectTrigger>
-                <SelectContent>{yearOptions.map((item) => <SelectItem key={item} value={String(item)}>{item}</SelectItem>)}</SelectContent>
+                <SelectContent>
+                  <SelectItem value="all">Totale</SelectItem>
+                  {yearOptions.map((item) => <SelectItem key={item} value={String(item)}>{item}</SelectItem>)}
+                </SelectContent>
               </Select>
             </div>
             <div className="grid gap-3 sm:grid-cols-2">
               <SummaryTile icon={<Archive className="h-5 w-5" />} label="Fatture" value={`${current.invoices} registrate`} />
-              <SummaryTile icon={<Calculator className="h-5 w-5" />} label="Imponibile fatture" value={money(current.net)} />
+              <SummaryTile icon={<Calculator className="h-5 w-5" />} label="Fatturato lordo" value={money(current.gross)} />
+              <SummaryTile icon={<ShieldCheck className="h-5 w-5" />} label="Totale cassa" value={money(current.pension)} />
               <SummaryTile icon={<FileText className="h-5 w-5" />} label="Tasse" value={money(current.taxes)} />
               <SummaryTile icon={<Coins className="h-5 w-5" />} label="Guadagni extra" value={money(current.extra ?? 0)} />
-              <SummaryTile icon={<HandCoins className="h-5 w-5" />} label="Risultato" value={money(current.gain)} />
+              <SummaryTile wide icon={<HandCoins className="h-5 w-5" />} label="Guadagno totale" value={money(current.gross - current.taxes + (current.extra ?? 0))} />
             </div>
             <Button className="mt-4 w-full" variant="warm" onClick={() => fileRef.current?.click()} disabled={uploading}>
               <UploadCloud className="h-4 w-4" /> {uploading ? "Lettura PDF…" : "Importa fattura PDF"}
@@ -384,16 +400,18 @@ const Index = () => {
           <div>
             <h2 className="font-display text-3xl font-bold">Archivio fatture, guadagni extra, tasse e detrazioni</h2>
           </div>
-          <Select value={String(year)} onValueChange={(value) => setYear(Number(value))}>
+          <Select value={String(year)} onValueChange={(value) => setYear(value === "all" ? "all" : Number(value))}>
             <SelectTrigger className="w-full sm:w-44"><SelectValue placeholder="Anno" /></SelectTrigger>
-            <SelectContent>{yearOptions.map((item) => <SelectItem key={item} value={String(item)}>{item}</SelectItem>)}</SelectContent>
+            <SelectContent>
+              <SelectItem value="all">Totale</SelectItem>
+              {yearOptions.map((item) => <SelectItem key={item} value={String(item)}>{item}</SelectItem>)}
+            </SelectContent>
           </Select>
         </div>
 
         <Tabs defaultValue="fatture" className="space-y-5">
           <TabsList className="h-auto flex-wrap justify-start bg-surface-raised p-1 shadow-soft">
             <TabsTrigger value="fatture">Archivio fatture</TabsTrigger>
-            <TabsTrigger value="pdf">PDF fatture</TabsTrigger>
             <TabsTrigger value="extra">Guadagni extra</TabsTrigger>
             <TabsTrigger value="tasse">Tasse</TabsTrigger>
             <TabsTrigger value="detrazioni">Detrazioni fiscali</TabsTrigger>
@@ -432,23 +450,6 @@ const Index = () => {
                 </LedgerTable>
               </Panel>
             </div>
-          </TabsContent>
-
-          <TabsContent value="pdf">
-            <Panel title={`PDF fatture ${year}`} icon={<FolderOpen className="h-5 w-5" />} action={<Button variant="warm" size="sm" onClick={() => fileRef.current?.click()}><UploadCloud className="h-4 w-4" /> Importa PDF</Button>}>
-              <LedgerTable headers={["N°", "Cliente", "Data", "File", "Totale", "Apri"]} empty="Nessun PDF archiviato per questo anno.">
-                {selectedPdfInvoices.map((invoice) => (
-                  <tr key={invoice.id} className="border-b border-border/70 transition hover:bg-surface-tint/55">
-                    <td className="px-3 py-3 font-semibold">{invoice.invoice_number}</td>
-                    <td className="px-3 py-3">{invoice.debtor}</td>
-                    <td className="px-3 py-3 text-muted-foreground">{invoice.invoice_date ? new Date(invoice.invoice_date).toLocaleDateString("it-IT") : "—"}</td>
-                    <td className="px-3 py-3 text-muted-foreground">{invoice.pdf_file_name ?? "Fattura PDF"}</td>
-                    <td className="px-3 py-3 font-bold text-primary">{money(Number(invoice.gross_total))}</td>
-                    <td className="px-3 py-3"><Button variant="ghost" size="icon" onClick={() => openPdf(invoice)} aria-label="Apri PDF"><Eye className="h-4 w-4" /></Button></td>
-                  </tr>
-                ))}
-              </LedgerTable>
-            </Panel>
           </TabsContent>
 
           <TabsContent value="extra">
@@ -535,6 +536,24 @@ const Index = () => {
             </div>
           </TabsContent>
         </Tabs>
+
+        <div className="mt-8">
+          <Panel title={`PDF fatture ${year === "all" ? "totale" : year}`} icon={<FolderOpen className="h-5 w-5" />} action={<Button variant="warm" size="sm" onClick={() => fileRef.current?.click()}><UploadCloud className="h-4 w-4" /> Importa PDF</Button>}>
+            <LedgerTable headers={["Anno", "N°", "Cliente", "Data", "File", "Totale", "Apri"]} empty="Nessun PDF archiviato per la selezione corrente.">
+              {selectedPdfInvoices.map((invoice) => (
+                <tr key={invoice.id} className="border-b border-border/70 transition hover:bg-surface-tint/55">
+                  <td className="px-3 py-3 text-muted-foreground">{invoice.year}</td>
+                  <td className="px-3 py-3 font-semibold">{invoice.invoice_number}</td>
+                  <td className="px-3 py-3">{invoice.debtor}</td>
+                  <td className="px-3 py-3 text-muted-foreground">{invoice.invoice_date ? new Date(invoice.invoice_date).toLocaleDateString("it-IT") : "—"}</td>
+                  <td className="px-3 py-3 text-muted-foreground">{invoice.pdf_file_name ?? "Fattura PDF"}</td>
+                  <td className="px-3 py-3 font-bold text-primary">{money(Number(invoice.gross_total))}</td>
+                  <td className="px-3 py-3"><Button variant="ghost" size="icon" onClick={() => openPdf(invoice)} aria-label="Apri PDF"><Eye className="h-4 w-4" /></Button></td>
+                </tr>
+              ))}
+            </LedgerTable>
+          </Panel>
+        </div>
       </section>
     </main>
   );
@@ -547,8 +566,8 @@ const Metric = ({ label, value }: { label: string; value: string }) => (
   </div>
 );
 
-const SummaryTile = ({ icon, label, value }: { icon: React.ReactNode; label: string; value: string }) => (
-  <div className="rounded-md border border-border bg-surface-tint p-4">
+const SummaryTile = ({ icon, label, value, wide = false }: { icon: React.ReactNode; label: string; value: string; wide?: boolean }) => (
+  <div className={`rounded-md border border-border bg-surface-tint p-4 ${wide ? "sm:col-span-2" : ""}`}>
     <div className="mb-3 flex items-center gap-2 text-primary">{icon}<span className="text-sm font-semibold uppercase">{label}</span></div>
     <p className="font-display text-2xl font-bold">{value}</p>
   </div>
