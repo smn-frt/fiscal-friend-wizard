@@ -377,13 +377,12 @@ const Index = () => {
                       <YAxis stroke="hsl(var(--muted-foreground))" tickFormatter={(value) => `${Number(value) / 1000}k`} />
                       <Tooltip formatter={(value) => money(Number(value))} contentStyle={{ borderColor: "hsl(var(--border))", background: "hsl(var(--card))", color: "hsl(var(--foreground))" }} />
                       <Area type="monotone" dataKey="gain" name="Guadagno" stroke="hsl(var(--primary))" fill="hsl(var(--primary) / 0.18)" strokeWidth={3} />
-                      <Area type="monotone" dataKey="extra" name="Extra" stroke="hsl(var(--secondary))" fill="hsl(var(--secondary) / 0.12)" strokeWidth={2} />
                       <Area type="monotone" dataKey="taxes" name="Tasse" stroke="hsl(var(--accent))" fill="hsl(var(--accent) / 0.12)" strokeWidth={2} />
                     </AreaChart>
                   </ResponsiveContainer>
                 </div>
               </Panel>
-              <Panel title="Fatture, tasse, extra" icon={<Archive className="h-5 w-5" />}>
+              <Panel title="Fatture e tasse" icon={<Archive className="h-5 w-5" />}>
                 <div className="h-[320px]">
                   <ResponsiveContainer width="100%" height="100%">
                     <BarChart data={chartData} margin={{ left: 0, right: 8, top: 10, bottom: 0 }}>
@@ -393,7 +392,6 @@ const Index = () => {
                       <Tooltip formatter={(value) => money(Number(value))} contentStyle={{ borderColor: "hsl(var(--border))", background: "hsl(var(--card))", color: "hsl(var(--foreground))" }} />
                       <Bar dataKey="gross" name="Fatturato lordo" fill="hsl(var(--primary))" radius={[4, 4, 0, 0]} />
                       <Bar dataKey="taxes" name="Tasse" fill="hsl(var(--accent))" radius={[4, 4, 0, 0]} />
-                      <Bar dataKey="extra" name="Extra" fill="hsl(var(--secondary))" radius={[4, 4, 0, 0]} />
                     </BarChart>
                   </ResponsiveContainer>
                 </div>
