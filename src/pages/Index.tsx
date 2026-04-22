@@ -350,7 +350,7 @@ const Index = () => {
               <Metric label="Fatturato lordo" value={money(current.gross)} />
               <Metric label="Tasse totali" value={money(current.taxes)} />
               <Metric label="Extra" value={money(current.extra ?? 0)} />
-              <Metric label="Guadagno" value={money(current.gain)} />
+              <Metric label="Guadagno totale" value={money(current.gross - current.taxes + (current.extra ?? 0))} />
             </div>
             {!sessionUser ? (
               <div className="rounded-lg border border-ledger-foreground/15 bg-ledger-foreground/10 p-4 backdrop-blur-sm">
@@ -385,7 +385,7 @@ const Index = () => {
               <SummaryTile icon={<ShieldCheck className="h-5 w-5" />} label="Totale cassa" value={money(current.pension)} />
               <SummaryTile icon={<FileText className="h-5 w-5" />} label="Tasse" value={money(current.taxes)} />
               <SummaryTile icon={<Coins className="h-5 w-5" />} label="Guadagni extra" value={money(current.extra ?? 0)} />
-              <SummaryTile className="sm:col-span-2" icon={<HandCoins className="h-5 w-5" />} label="Guadagno totale" value={money(current.gross - current.taxes + (current.extra ?? 0))} />
+              <SummaryTile wide icon={<HandCoins className="h-5 w-5" />} label="Guadagno totale" value={money(current.gross - current.taxes + (current.extra ?? 0))} />
             </div>
             <Button className="mt-4 w-full" variant="warm" onClick={() => fileRef.current?.click()} disabled={uploading}>
               <UploadCloud className="h-4 w-4" /> {uploading ? "Lettura PDF…" : "Importa fattura PDF"}
