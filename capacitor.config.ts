@@ -1,7 +1,7 @@
 import type { CapacitorConfig } from '@capacitor/cli';
 
 const config: CapacitorConfig = {
-  appId: 'app.lovable.9158d49954aa482aaaa1059fbc937c96',
+  appId: 'app.lovable.fiscalfriendwizard',
   appName: 'fiscal-friend-wizard',
   webDir: 'dist',
   server: {
