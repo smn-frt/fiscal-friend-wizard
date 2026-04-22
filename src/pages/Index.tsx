@@ -102,7 +102,7 @@ const Index = () => {
   const [taxes, setTaxes] = useState<TaxPayment[]>(initialTaxes);
   const [deductions, setDeductions] = useState<TaxDeduction[]>([]);
   const [extraEarnings, setExtraEarnings] = useState<ExtraEarning[]>(initialExtras);
-  const [year, setYear] = useState(2026);
+  const [year, setYear] = useState<number | "all">(2026);
   const [uploading, setUploading] = useState(false);
   const [sessionUser, setSessionUser] = useState<string | null>(null);
   const [authDraft, setAuthDraft] = useState({ email: "", password: "" });
@@ -164,13 +164,25 @@ const Index = () => {
     return dynamic.sort((a, b) => a.year - b.year);
   }, [invoices, taxes, extraEarnings, yearOptions]);
 
-  const selectedInvoices = invoices.filter((item) => item.year === year).sort((a, b) => a.invoice_number - b.invoice_number);
-  const selectedTaxes = taxes.filter((item) => item.year === year);
-  const selectedDeductions = deductions.filter((item) => item.year === year);
-  const selectedExtras = extraEarnings.filter((item) => item.year === year);
+  const selectedInvoices = invoices.filter((item) => year === "all" || item.year === year).sort((a, b) => a.year - b.year || a.invoice_number - b.invoice_number);
+  const selectedTaxes = taxes.filter((item) => year === "all" || item.year === year);
+  const selectedDeductions = deductions.filter((item) => year === "all" || item.year === year);
+  const selectedExtras = extraEarnings.filter((item) => year === "all" || item.year === year);
   const selectedPdfInvoices = selectedInvoices.filter((item) => item.pdf_file_name || item.pdf_storage_path || item.pdf_url);
-  const current = chartData.find((item) => item.year === year) ?? { net: 0, gross: 0, taxes: 0, extra: 0, gain: 0, invoices: 0 };
+  const totalSummary = chartData.reduce((total, item) => ({
+    net: total.net + Number(item.net),
+    gross: total.gross + Number(item.gross),
+    taxes: total.taxes + Number(item.taxes),
+    extra: total.extra + Number(item.extra ?? 0),
+    gain: total.gain + Number(item.gain),
+    invoices: total.invoices + Number(item.invoices),
+    pension: total.pension + invoices.filter((invoice) => invoice.year === item.year).reduce((sum, invoice) => sum + Number(invoice.pension_fund), 0),
+  }), { net: 0, gross: 0, taxes: 0, extra: 0, gain: 0, invoices: 0, pension: 0 });
+  const yearlySummary = chartData.find((item) => item.year === year);
+  const yearlyPension = year === "all" ? 0 : invoices.filter((item) => item.year === year).reduce((sum, item) => sum + Number(item.pension_fund), 0);
+  const current = year === "all" ? totalSummary : { ...(yearlySummary ?? { net: 0, gross: 0, taxes: 0, extra: 0, gain: 0, invoices: 0 }), pension: yearlyPension };
   const manualGross = parseAmount(invoiceDraft.taxable_amount) + parseAmount(invoiceDraft.pension_fund) + parseAmount(invoiceDraft.stamp_duty);
+  const activeYearForNew = year === "all" ? new Date().getFullYear() : year;
 
   const handleUpload = async (file?: File) => {
     if (!file) return;
