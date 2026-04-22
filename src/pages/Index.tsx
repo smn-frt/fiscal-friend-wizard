@@ -1,12 +1,13 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Area, AreaChart, Bar, BarChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
-import { Archive, Eye, FileCheck2, FileText, Plus, ReceiptText, ScanLine, ShieldCheck, UploadCloud } from "lucide-react";
+import { Archive, Calculator, Coins, Eye, FileCheck2, FileText, HandCoins, Plus, ReceiptText, ShieldCheck, UploadCloud } from "lucide-react";
 import * as pdfjs from "pdfjs-dist";
 import pdfWorkerUrl from "pdfjs-dist/build/pdf.worker.mjs?url";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Textarea } from "@/components/ui/textarea";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { excelInvoices, excelTaxes, historicalYears } from "@/data/accountingSeed";
@@ -33,6 +34,8 @@ type TaxPayment = { id: string; year: number; category: string; reference: strin
 
 type TaxDeduction = { id: string; year: number; category: string; description: string; amount: number; paid_at?: string | null; notes?: string | null };
 
+type ExtraEarning = { id: string; year: number; description: string; amount: number; earned_at?: string | null; notes?: string | null };
+
 const taxCategories = ["Ordine ingegneri", "Assicurazione professionale", "INARCASSA (contributo soggettivo)", "INARCASSA (contributo integrativo)", "INARCASSA (contributo paternità)", "Spese F24", "Altro"];
 
 const initialInvoices = excelInvoices as unknown as Invoice[];
@@ -46,6 +49,8 @@ const parseAmount = (value?: string | null) => {
   if (!value) return 0;
   return Number(value.replace(/\./g, "").replace(",", "."));
 };
+
+const formatAmountInput = (value: number) => value ? value.toFixed(2).replace(".", ",") : "";
 
 const pickDate = (text: string) => {
   const match = text.match(/(\d{2})\.(\d{2})\.(\d{4})/);
@@ -73,6 +78,7 @@ const extractInvoice = (text: string, fileName: string): Omit<Invoice, "id" | "p
     gross_total: total,
     pdf_file_name: fileName,
     pdf_storage_path: null,
+    source: "pdf",
   };
 };
 
@@ -93,6 +99,7 @@ const Index = () => {
   const [invoices, setInvoices] = useState<Invoice[]>(initialInvoices);
   const [taxes, setTaxes] = useState<TaxPayment[]>(initialTaxes);
   const [deductions, setDeductions] = useState<TaxDeduction[]>([]);
+  const [extraEarnings, setExtraEarnings] = useState<ExtraEarning[]>([]);
   const [year, setYear] = useState(2026);
   const [uploading, setUploading] = useState(false);
   const [sessionUser, setSessionUser] = useState<string | null>(null);
@@ -100,22 +107,29 @@ const Index = () => {
   const [authMode, setAuthMode] = useState<"signin" | "signup">("signup");
   const [taxDraft, setTaxDraft] = useState({ category: "Ordine ingegneri", reference: "", amount: "", paid_at: "" });
   const [deductionDraft, setDeductionDraft] = useState({ category: "Altro", description: "", amount: "", paid_at: "" });
+  const [invoiceDraft, setInvoiceDraft] = useState({ invoice_number: "", debtor: "", invoice_date: "", taxable_amount: "", pension_fund: "", stamp_duty: "" });
+  const [extraDraft, setExtraDraft] = useState({ description: "", amount: "", earned_at: "", notes: "" });
   const fileRef = useRef<HTMLInputElement>(null);
+
+  const loadUserData = async (uid: string) => {
+    const [{ data: invoiceRows }, { data: taxRows }, { data: deductionRows }, { data: extraRows }] = await Promise.all([
+      supabase.from("invoices").select("*").order("year", { ascending: false }).order("invoice_number", { ascending: false }),
+      supabase.from("tax_payments").select("*").order("year", { ascending: false }),
+      (supabase as any).from("tax_deductions").select("*").order("year", { ascending: false }),
+      (supabase as any).from("extra_earnings").select("*").order("year", { ascending: false }),
+    ]);
+    if (invoiceRows?.length) setInvoices([...invoiceRows, ...initialInvoices.filter((seed) => !invoiceRows.some((row) => row.year === seed.year && row.invoice_number === seed.invoice_number))]);
+    if (taxRows?.length) setTaxes([...taxRows.map((row) => ({ ...row, category: row.category ?? "Altro" })), ...initialTaxes]);
+    if (deductionRows?.length) setDeductions(deductionRows);
+    if (extraRows?.length) setExtraEarnings(extraRows);
+  };
 
   useEffect(() => {
     const boot = async () => {
       const { data: session } = await supabase.auth.getSession();
       const uid = session.session?.user.id ?? null;
       setSessionUser(uid);
-      if (!uid) return;
-      const [{ data: invoiceRows }, { data: taxRows }, { data: deductionRows }] = await Promise.all([
-        supabase.from("invoices").select("*").order("year", { ascending: false }).order("invoice_number", { ascending: false }),
-        supabase.from("tax_payments").select("*").order("year", { ascending: false }),
-        (supabase as any).from("tax_deductions").select("*").order("year", { ascending: false }),
-      ]);
-      if (invoiceRows?.length) setInvoices([...invoiceRows, ...initialInvoices.filter((seed) => !invoiceRows.some((row) => row.year === seed.year && row.invoice_number === seed.invoice_number))]);
-      if (taxRows?.length) setTaxes([...taxRows.map((row) => ({ ...row, category: row.category ?? "Altro" })), ...initialTaxes]);
-      if (deductionRows?.length) setDeductions(deductionRows);
+      if (uid) await loadUserData(uid);
     };
     boot();
   }, []);
@@ -125,29 +139,34 @@ const Index = () => {
     const action = authMode === "signup" ? supabase.auth.signUp(authDraft) : supabase.auth.signInWithPassword(authDraft);
     const { data, error } = await action;
     if (error) return toast.error("Accesso non riuscito", { description: error.message });
-    setSessionUser(data.user?.id ?? null);
+    const uid = data.user?.id ?? null;
+    setSessionUser(uid);
+    if (uid) await loadUserData(uid);
     toast.success(authMode === "signup" ? "Account creato" : "Accesso effettuato");
   };
 
-  const yearOptions = useMemo(() => [...new Set([...historicalYears.map((item) => item.year), ...invoices.map((item) => item.year), ...taxes.map((item) => item.year)])].sort((a, b) => b - a), [invoices, taxes]);
+  const yearOptions = useMemo(() => [...new Set([...historicalYears.map((item) => item.year), ...invoices.map((item) => item.year), ...taxes.map((item) => item.year), ...extraEarnings.map((item) => item.year)])].sort((a, b) => b - a), [invoices, taxes, extraEarnings]);
 
   const chartData = useMemo(() => {
     const dynamic = yearOptions.map((currentYear) => {
       const existing = historicalYears.find((item) => item.year === currentYear);
       const annualInvoices = invoices.filter((item) => item.year === currentYear);
       const annualTaxes = taxes.filter((item) => item.year === currentYear).reduce((sum, item) => sum + Number(item.amount), 0);
-      if (!annualInvoices.length && existing) return existing;
+      const annualExtra = extraEarnings.filter((item) => item.year === currentYear).reduce((sum, item) => sum + Number(item.amount), 0);
+      if (!annualInvoices.length && existing) return { ...existing, extra: annualExtra, gain: Number(existing.gain) + annualExtra };
       const net = annualInvoices.reduce((sum, item) => sum + Number(item.taxable_amount), 0);
       const gross = annualInvoices.reduce((sum, item) => sum + Number(item.gross_total), 0);
-      return { year: currentYear, invoices: annualInvoices.length, net, gross, taxes: annualTaxes, gain: gross - annualTaxes };
+      return { year: currentYear, invoices: annualInvoices.length, net, gross, taxes: annualTaxes, extra: annualExtra, gain: gross - annualTaxes + annualExtra };
     });
     return dynamic.sort((a, b) => a.year - b.year);
-  }, [invoices, taxes, yearOptions]);
+  }, [invoices, taxes, extraEarnings, yearOptions]);
 
   const selectedInvoices = invoices.filter((item) => item.year === year).sort((a, b) => a.invoice_number - b.invoice_number);
   const selectedTaxes = taxes.filter((item) => item.year === year);
   const selectedDeductions = deductions.filter((item) => item.year === year);
-  const current = chartData.find((item) => item.year === year) ?? { net: 0, gross: 0, taxes: 0, gain: 0, invoices: 0 };
+  const selectedExtras = extraEarnings.filter((item) => item.year === year);
+  const current = chartData.find((item) => item.year === year) ?? { net: 0, gross: 0, taxes: 0, extra: 0, gain: 0, invoices: 0 };
+  const manualGross = parseAmount(invoiceDraft.taxable_amount) + parseAmount(invoiceDraft.pension_fund) + parseAmount(invoiceDraft.stamp_duty);
 
   const handleUpload = async (file?: File) => {
     if (!file) return;
@@ -170,7 +189,7 @@ const Index = () => {
           .select("*")
           .single();
         if (error) throw error;
-        setInvoices((items) => [{ ...data, pdf_url: url }, ...items.filter((item) => !(item.year === data.year && item.invoice_number === data.invoice_number))]);
+        setInvoices((items) => [{ ...data, pdf_url: url, source: "pdf" }, ...items.filter((item) => !(item.year === data.year && item.invoice_number === data.invoice_number))]);
       } else {
         setInvoices((items) => [{ ...parsed, id: crypto.randomUUID(), pdf_storage_path: storagePath, pdf_url: url }, ...items]);
       }
@@ -182,6 +201,35 @@ const Index = () => {
       setUploading(false);
       if (fileRef.current) fileRef.current.value = "";
     }
+  };
+
+  const addManualInvoice = async () => {
+    const taxable = parseAmount(invoiceDraft.taxable_amount);
+    const pension = parseAmount(invoiceDraft.pension_fund);
+    const stamp = parseAmount(invoiceDraft.stamp_duty);
+    const number = Number(invoiceDraft.invoice_number);
+    if (!number || !invoiceDraft.debtor || !taxable) return toast.error("Inserisci numero, cliente e imponibile della fattura");
+    const draft = {
+      year,
+      invoice_number: number,
+      debtor: invoiceDraft.debtor,
+      invoice_date: invoiceDraft.invoice_date || null,
+      taxable_amount: taxable,
+      pension_fund: pension,
+      stamp_duty: stamp,
+      gross_total: taxable + pension + stamp,
+      pdf_file_name: null,
+      pdf_storage_path: null,
+    };
+    if (sessionUser) {
+      const { data, error } = await supabase.from("invoices").insert({ ...draft, user_id: sessionUser }).select("*").single();
+      if (error) return toast.error("Fattura non salvata", { description: error.message });
+      setInvoices((items) => [{ ...data, source: "manuale" }, ...items]);
+    } else {
+      setInvoices((items) => [{ ...draft, id: crypto.randomUUID(), source: "manuale" }, ...items]);
+    }
+    setInvoiceDraft({ invoice_number: "", debtor: "", invoice_date: "", taxable_amount: "", pension_fund: "", stamp_duty: "" });
+    toast.success("Fattura inserita manualmente");
   };
 
   const addTax = async () => {
@@ -212,6 +260,21 @@ const Index = () => {
     setDeductionDraft({ category: "Altro", description: "", amount: "", paid_at: "" });
   };
 
+  const addExtra = async () => {
+    const amount = parseAmount(extraDraft.amount);
+    if (!extraDraft.description || !amount) return toast.error("Inserisci descrizione e importo del guadagno extra");
+    const draft = { year, description: extraDraft.description, amount, earned_at: extraDraft.earned_at || null, notes: extraDraft.notes || null };
+    if (sessionUser) {
+      const { data, error } = await (supabase as any).from("extra_earnings").insert({ ...draft, user_id: sessionUser }).select("*").single();
+      if (error) return toast.error("Guadagno extra non salvato", { description: error.message });
+      setExtraEarnings((items) => [data, ...items]);
+    } else {
+      setExtraEarnings((items) => [{ ...draft, id: crypto.randomUUID() }, ...items]);
+    }
+    setExtraDraft({ description: "", amount: "", earned_at: "", notes: "" });
+    toast.success("Guadagno extra registrato");
+  };
+
   const openPdf = async (invoice: Invoice) => {
     if (invoice.pdf_url) return window.open(invoice.pdf_url, "_blank");
     if (!invoice.pdf_storage_path) return;
@@ -223,18 +286,18 @@ const Index = () => {
     <main className="min-h-screen overflow-hidden ledger-grid">
       <section className="relative bg-hero-ledger text-ledger-foreground">
         <div className="absolute inset-x-0 top-0 h-px bg-secondary/70" />
-        <div className="mx-auto grid max-w-7xl gap-8 px-4 py-6 sm:px-6 lg:grid-cols-[1.05fr_0.95fr] lg:px-8 lg:py-10">
-          <div className="flex min-h-[420px] flex-col justify-between gap-8 py-5">
+        <div className="mx-auto grid max-w-7xl gap-8 px-4 py-6 sm:px-6 lg:grid-cols-[1fr_1fr] lg:px-8 lg:py-10">
+          <div className="flex min-h-[390px] flex-col justify-between gap-8 py-5">
             <div className="flex items-center gap-3 text-sm font-semibold uppercase tracking-normal text-secondary">
-              <ReceiptText className="h-5 w-5" /> Studio contabile fatture
+              <ReceiptText className="h-5 w-5" /> Archivio fatture, tasse e andamento guadagni
             </div>
             <div className="max-w-3xl animate-rise-in">
-              <h1 className="font-display text-4xl font-bold leading-tight sm:text-6xl lg:text-7xl">Archivio fatture e riepilogo forfettario</h1>
-              <p className="mt-5 max-w-2xl text-lg text-ledger-foreground/82">Carica un PDF: l’app legge numero, data, cliente, imponibile, cassa, bollo e totale, poi aggiorna automaticamente anno, archivio e grafici.</p>
+              <h1 className="font-display text-4xl font-bold leading-tight sm:text-6xl lg:text-7xl">Contabilità</h1>
             </div>
-            <div className="grid gap-3 sm:grid-cols-3">
+            <div className="grid gap-3 sm:grid-cols-4">
               <Metric label="Fatturato lordo" value={money(current.gross)} />
-              <Metric label="Tasse/costi" value={money(current.taxes)} />
+              <Metric label="Tasse totali" value={money(current.taxes)} />
+              <Metric label="Extra" value={money(current.extra ?? 0)} />
               <Metric label="Guadagno" value={money(current.gain)} />
             </div>
             {!sessionUser ? (
@@ -251,19 +314,25 @@ const Index = () => {
             ) : null}
           </div>
           <div className="relative my-auto overflow-hidden rounded-lg border border-ledger-foreground/15 bg-surface-raised/95 p-4 text-foreground shadow-ledger">
-            <div className="pointer-events-none absolute inset-x-4 top-0 h-16 animate-scan-line bg-gradient-to-b from-secondary/0 via-secondary/25 to-secondary/0 motion-reduce:hidden" />
-            <div className="mb-4 flex items-center justify-between gap-3">
+            <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
               <div>
-                <p className="text-sm font-semibold uppercase text-primary">Scanner PDF</p>
-                <h2 className="font-display text-2xl font-bold">Import automatico</h2>
+                <p className="text-sm font-semibold uppercase text-primary">Anno selezionato</p>
+                <h2 className="font-display text-2xl font-bold">Riepilogo {year}</h2>
               </div>
-              <ScanLine className="h-8 w-8 text-accent" />
+              <Select value={String(year)} onValueChange={(value) => setYear(Number(value))}>
+                <SelectTrigger className="w-full sm:w-40"><SelectValue placeholder="Anno" /></SelectTrigger>
+                <SelectContent>{yearOptions.map((item) => <SelectItem key={item} value={String(item)}>{item}</SelectItem>)}</SelectContent>
+              </Select>
             </div>
-            <button onClick={() => fileRef.current?.click()} className="group flex min-h-[210px] w-full flex-col items-center justify-center rounded-md border border-dashed border-primary/45 bg-surface-tint p-6 text-center transition duration-300 hover:-translate-y-1 hover:border-secondary hover:shadow-soft focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
-              <UploadCloud className="mb-4 h-12 w-12 text-primary transition group-hover:scale-110" />
-              <span className="font-display text-xl font-semibold">{uploading ? "Lettura del PDF in corso…" : "Carica fattura PDF"}</span>
-              <span className="mt-2 text-sm text-muted-foreground">Esempio incluso: fattura 1/2026 già catalogata dal PDF allegato.</span>
-            </button>
+            <div className="grid gap-3 sm:grid-cols-2">
+              <SummaryTile icon={<Archive className="h-5 w-5" />} label="Fatture" value={`${current.invoices} registrate`} />
+              <SummaryTile icon={<Calculator className="h-5 w-5" />} label="Imponibile fatture" value={money(current.net)} />
+              <SummaryTile icon={<Coins className="h-5 w-5" />} label="Guadagni extra" value={money(current.extra ?? 0)} />
+              <SummaryTile icon={<HandCoins className="h-5 w-5" />} label="Risultato" value={money(current.gain)} />
+            </div>
+            <Button className="mt-4 w-full" variant="warm" onClick={() => fileRef.current?.click()} disabled={uploading}>
+              <UploadCloud className="h-4 w-4" /> {uploading ? "Lettura PDF…" : "Importa fattura PDF"}
+            </Button>
             <input ref={fileRef} className="hidden" type="file" accept="application/pdf" onChange={(event) => handleUpload(event.target.files?.[0])} />
           </div>
         </div>
@@ -272,8 +341,7 @@ const Index = () => {
       <section className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
         <div className="mb-5 flex flex-col justify-between gap-3 sm:flex-row sm:items-center">
           <div>
-            <h2 className="font-display text-3xl font-bold">Riepilogo annuale</h2>
-            <p className="text-muted-foreground">Struttura basata sulle schede Excel: fatture, tasse e andamento guadagni.</p>
+            <h2 className="font-display text-3xl font-bold">Archivio fatture, tasse e andamento guadagni</h2>
           </div>
           <div className="flex flex-wrap gap-2">
             {yearOptions.map((item) => (
@@ -284,13 +352,20 @@ const Index = () => {
 
         <Tabs defaultValue="dashboard" className="space-y-5">
           <TabsList className="h-auto flex-wrap justify-start bg-surface-raised p-1 shadow-soft">
-            <TabsTrigger value="dashboard">Dashboard</TabsTrigger>
-            <TabsTrigger value="fatture">Fatture</TabsTrigger>
-            <TabsTrigger value="tasse">Tasse pagate</TabsTrigger>
+            <TabsTrigger value="dashboard">Andamento guadagni</TabsTrigger>
+            <TabsTrigger value="fatture">Archivio fatture</TabsTrigger>
+            <TabsTrigger value="extra">Guadagni extra</TabsTrigger>
+            <TabsTrigger value="tasse">Tasse</TabsTrigger>
             <TabsTrigger value="detrazioni">Detrazioni fiscali</TabsTrigger>
           </TabsList>
 
           <TabsContent value="dashboard" className="space-y-5">
+            <div className="grid gap-4 sm:grid-cols-4">
+              <Panel title="Fatturato lordo" icon={<Archive className="h-5 w-5" />}><p className="font-display text-3xl font-bold text-primary">{money(current.gross)}</p></Panel>
+              <Panel title="Tasse totali" icon={<FileText className="h-5 w-5" />}><p className="font-display text-3xl font-bold text-accent">{money(current.taxes)}</p></Panel>
+              <Panel title="Extra" icon={<Coins className="h-5 w-5" />}><p className="font-display text-3xl font-bold text-secondary">{money(current.extra ?? 0)}</p></Panel>
+              <Panel title="Guadagno" icon={<ShieldCheck className="h-5 w-5" />}><p className="font-display text-3xl font-bold text-primary">{money(current.gain)}</p></Panel>
+            </div>
             <div className="grid gap-5 lg:grid-cols-[1.2fr_0.8fr]">
               <Panel title="Andamento guadagni" icon={<ShieldCheck className="h-5 w-5" />}>
                 <div className="h-[320px]">
@@ -301,12 +376,13 @@ const Index = () => {
                       <YAxis stroke="hsl(var(--muted-foreground))" tickFormatter={(value) => `${Number(value) / 1000}k`} />
                       <Tooltip formatter={(value) => money(Number(value))} contentStyle={{ borderColor: "hsl(var(--border))", background: "hsl(var(--card))", color: "hsl(var(--foreground))" }} />
                       <Area type="monotone" dataKey="gain" name="Guadagno" stroke="hsl(var(--primary))" fill="hsl(var(--primary) / 0.18)" strokeWidth={3} />
+                      <Area type="monotone" dataKey="extra" name="Extra" stroke="hsl(var(--secondary))" fill="hsl(var(--secondary) / 0.12)" strokeWidth={2} />
                       <Area type="monotone" dataKey="taxes" name="Tasse" stroke="hsl(var(--accent))" fill="hsl(var(--accent) / 0.12)" strokeWidth={2} />
                     </AreaChart>
                   </ResponsiveContainer>
                 </div>
               </Panel>
-              <Panel title="Netto, lordo, tasse" icon={<Archive className="h-5 w-5" />}>
+              <Panel title="Fatture, tasse, extra" icon={<Archive className="h-5 w-5" />}>
                 <div className="h-[320px]">
                   <ResponsiveContainer width="100%" height="100%">
                     <BarChart data={chartData} margin={{ left: 0, right: 8, top: 10, bottom: 0 }}>
@@ -314,9 +390,9 @@ const Index = () => {
                       <XAxis dataKey="year" stroke="hsl(var(--muted-foreground))" />
                       <YAxis stroke="hsl(var(--muted-foreground))" tickFormatter={(value) => `${Number(value) / 1000}k`} />
                       <Tooltip formatter={(value) => money(Number(value))} contentStyle={{ borderColor: "hsl(var(--border))", background: "hsl(var(--card))", color: "hsl(var(--foreground))" }} />
-                      <Bar dataKey="net" name="Netto" fill="hsl(var(--primary))" radius={[4, 4, 0, 0]} />
-                      <Bar dataKey="gross" name="Lordo" fill="hsl(var(--secondary))" radius={[4, 4, 0, 0]} />
+                      <Bar dataKey="gross" name="Fatturato lordo" fill="hsl(var(--primary))" radius={[4, 4, 0, 0]} />
                       <Bar dataKey="taxes" name="Tasse" fill="hsl(var(--accent))" radius={[4, 4, 0, 0]} />
+                      <Bar dataKey="extra" name="Extra" fill="hsl(var(--secondary))" radius={[4, 4, 0, 0]} />
                     </BarChart>
                   </ResponsiveContainer>
                 </div>
@@ -325,23 +401,63 @@ const Index = () => {
           </TabsContent>
 
           <TabsContent value="fatture">
-            <Panel title={`Archivio fatture ${year}`} icon={<FileCheck2 className="h-5 w-5" />} action={<Button variant="warm" size="sm" onClick={() => fileRef.current?.click()}><Plus className="h-4 w-4" /> Carica PDF</Button>}>
-              <LedgerTable headers={["N°", "Cliente", "Data", "Imponibile", "Cassa", "Bollo", "Totale", "Origine", "PDF"]} empty="Nessuna fattura archiviata per questo anno.">
-                {selectedInvoices.map((invoice) => (
-                  <tr key={invoice.id} className="border-b border-border/70 transition hover:bg-surface-tint/55">
-                    <td className="px-3 py-3 font-semibold">{invoice.invoice_number}</td>
-                    <td className="px-3 py-3">{invoice.debtor}</td>
-                    <td className="px-3 py-3 text-muted-foreground">{invoice.invoice_date ? new Date(invoice.invoice_date).toLocaleDateString("it-IT") : "—"}</td>
-                    <td className="px-3 py-3">{money(Number(invoice.taxable_amount))}</td>
-                    <td className="px-3 py-3">{money(Number(invoice.pension_fund))}</td>
-                    <td className="px-3 py-3">{money(Number(invoice.stamp_duty))}</td>
-                    <td className="px-3 py-3 font-bold text-primary">{money(Number(invoice.gross_total))}</td>
-                    <td className="px-3 py-3 text-muted-foreground">{invoice.source === "excel" ? "Excel" : "PDF"}</td>
-                    <td className="px-3 py-3"><Button variant="ghost" size="icon" onClick={() => openPdf(invoice)} aria-label="Apri PDF" disabled={!invoice.pdf_url && !invoice.pdf_storage_path}><Eye className="h-4 w-4" /></Button></td>
-                  </tr>
-                ))}
-              </LedgerTable>
-            </Panel>
+            <div className="grid gap-5 lg:grid-cols-[0.75fr_1.25fr]">
+              <Panel title="Inserisci fattura" icon={<Plus className="h-5 w-5" />} action={<Button variant="warm" size="sm" onClick={() => fileRef.current?.click()}><UploadCloud className="h-4 w-4" /> PDF</Button>}>
+                <div className="grid gap-3">
+                  <Input placeholder="Numero fattura" inputMode="numeric" value={invoiceDraft.invoice_number} onChange={(e) => setInvoiceDraft((draft) => ({ ...draft, invoice_number: e.target.value }))} />
+                  <Input placeholder="Cliente" value={invoiceDraft.debtor} onChange={(e) => setInvoiceDraft((draft) => ({ ...draft, debtor: e.target.value }))} />
+                  <Input type="date" value={invoiceDraft.invoice_date} onChange={(e) => setInvoiceDraft((draft) => ({ ...draft, invoice_date: e.target.value }))} />
+                  <Input placeholder="Imponibile, es. 1000,00" value={invoiceDraft.taxable_amount} onChange={(e) => setInvoiceDraft((draft) => ({ ...draft, taxable_amount: e.target.value }))} />
+                  <Input placeholder="Cassa, es. 40,00" value={invoiceDraft.pension_fund} onChange={(e) => setInvoiceDraft((draft) => ({ ...draft, pension_fund: e.target.value }))} />
+                  <Input placeholder="Bollo, es. 2,00" value={invoiceDraft.stamp_duty} onChange={(e) => setInvoiceDraft((draft) => ({ ...draft, stamp_duty: e.target.value }))} />
+                  <div className="rounded-md border border-border bg-surface-tint p-3 text-sm font-semibold">Totale: {money(manualGross)}</div>
+                  <Button variant="ledger" onClick={addManualInvoice}>Registra fattura</Button>
+                </div>
+              </Panel>
+              <Panel title={`Archivio fatture ${year}`} icon={<FileCheck2 className="h-5 w-5" />}>
+                <LedgerTable headers={["N°", "Cliente", "Data", "Imponibile", "Cassa", "Bollo", "Totale", "Origine", "PDF"]} empty="Nessuna fattura archiviata per questo anno.">
+                  {selectedInvoices.map((invoice) => (
+                    <tr key={invoice.id} className="border-b border-border/70 transition hover:bg-surface-tint/55">
+                      <td className="px-3 py-3 font-semibold">{invoice.invoice_number}</td>
+                      <td className="px-3 py-3">{invoice.debtor}</td>
+                      <td className="px-3 py-3 text-muted-foreground">{invoice.invoice_date ? new Date(invoice.invoice_date).toLocaleDateString("it-IT") : "—"}</td>
+                      <td className="px-3 py-3">{money(Number(invoice.taxable_amount))}</td>
+                      <td className="px-3 py-3">{money(Number(invoice.pension_fund))}</td>
+                      <td className="px-3 py-3">{money(Number(invoice.stamp_duty))}</td>
+                      <td className="px-3 py-3 font-bold text-primary">{money(Number(invoice.gross_total))}</td>
+                      <td className="px-3 py-3 text-muted-foreground">{invoice.source === "excel" ? "Excel" : invoice.pdf_storage_path || invoice.pdf_url ? "PDF" : "Manuale"}</td>
+                      <td className="px-3 py-3"><Button variant="ghost" size="icon" onClick={() => openPdf(invoice)} aria-label="Apri PDF" disabled={!invoice.pdf_url && !invoice.pdf_storage_path}><Eye className="h-4 w-4" /></Button></td>
+                    </tr>
+                  ))}
+                </LedgerTable>
+              </Panel>
+            </div>
+          </TabsContent>
+
+          <TabsContent value="extra">
+            <div className="grid gap-5 lg:grid-cols-[0.75fr_1.25fr]">
+              <Panel title="Nuovo guadagno extra" icon={<Plus className="h-5 w-5" />}>
+                <div className="grid gap-3">
+                  <Input placeholder="Descrizione" value={extraDraft.description} onChange={(e) => setExtraDraft((draft) => ({ ...draft, description: e.target.value }))} />
+                  <Input placeholder="Importo imponibile, es. 500,00" value={extraDraft.amount} onChange={(e) => setExtraDraft((draft) => ({ ...draft, amount: e.target.value }))} />
+                  <Input type="date" value={extraDraft.earned_at} onChange={(e) => setExtraDraft((draft) => ({ ...draft, earned_at: e.target.value }))} />
+                  <Textarea placeholder="Note" value={extraDraft.notes} onChange={(e) => setExtraDraft((draft) => ({ ...draft, notes: e.target.value }))} />
+                  <Button variant="ledger" onClick={addExtra}>Registra extra</Button>
+                </div>
+              </Panel>
+              <Panel title={`Guadagni extra ${year}`} icon={<Coins className="h-5 w-5" />}>
+                <LedgerTable headers={["Descrizione", "Data", "Importo", "Note"]} empty="Nessun guadagno extra registrato per questo anno.">
+                  {selectedExtras.map((extra) => (
+                    <tr key={extra.id} className="border-b border-border/70 transition hover:bg-surface-tint/55">
+                      <td className="px-3 py-3 font-semibold">{extra.description}</td>
+                      <td className="px-3 py-3 text-muted-foreground">{extra.earned_at ? new Date(extra.earned_at).toLocaleDateString("it-IT") : "—"}</td>
+                      <td className="px-3 py-3 font-bold text-secondary">{money(Number(extra.amount))}</td>
+                      <td className="px-3 py-3 text-muted-foreground">{extra.notes || "—"}</td>
+                    </tr>
+                  ))}
+                </LedgerTable>
+              </Panel>
+            </div>
           </TabsContent>
 
           <TabsContent value="tasse">
@@ -411,6 +527,13 @@ const Metric = ({ label, value }: { label: string; value: string }) => (
   <div className="rounded-md border border-ledger-foreground/15 bg-ledger-foreground/10 p-4 backdrop-blur-sm">
     <p className="text-sm text-ledger-foreground/70">{label}</p>
     <p className="mt-1 font-display text-2xl font-bold">{value}</p>
+  </div>
+);
+
+const SummaryTile = ({ icon, label, value }: { icon: React.ReactNode; label: string; value: string }) => (
+  <div className="rounded-md border border-border bg-surface-tint p-4">
+    <div className="mb-3 flex items-center gap-2 text-primary">{icon}<span className="text-sm font-semibold uppercase">{label}</span></div>
+    <p className="font-display text-2xl font-bold">{value}</p>
   </div>
 );
 
