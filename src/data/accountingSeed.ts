@@ -1622,6 +1622,99 @@ export const excelTaxes = [
   }
 ] as const;
 
+export const excelExtraEarnings = [
+  {
+    "id": "excel-extra-2022-1",
+    "year": 2022,
+    "description": "BECCARIA",
+    "amount": 540.28,
+    "earned_at": null,
+    "notes": "Importato da colonna CUD Excel",
+    "source": "excel"
+  },
+  {
+    "id": "excel-extra-2022-2",
+    "year": 2022,
+    "description": "PORT MOBILITY",
+    "amount": 2002.0,
+    "earned_at": null,
+    "notes": "Importato da colonna CUD Excel",
+    "source": "excel"
+  },
+  {
+    "id": "excel-extra-2022-3",
+    "year": 2022,
+    "description": "INTAGO",
+    "amount": 32016.0,
+    "earned_at": null,
+    "notes": "Importato da colonna CUD Excel",
+    "source": "excel"
+  },
+  {
+    "id": "excel-extra-2022-4",
+    "year": 2022,
+    "description": "SIMONE FRATONI",
+    "amount": 350.0,
+    "earned_at": null,
+    "notes": "Importato da colonna CUD Excel",
+    "source": "excel"
+  },
+  {
+    "id": "excel-extra-2023-1",
+    "year": 2023,
+    "description": "BECCARIA",
+    "amount": 2539.6,
+    "earned_at": null,
+    "notes": "Importato da colonna CUD Excel",
+    "source": "excel"
+  },
+  {
+    "id": "excel-extra-2023-2",
+    "year": 2023,
+    "description": "PORT MOBILITY",
+    "amount": 4162.0,
+    "earned_at": null,
+    "notes": "Importato da colonna CUD Excel",
+    "source": "excel"
+  },
+  {
+    "id": "excel-extra-2023-3",
+    "year": 2023,
+    "description": "INTAGO",
+    "amount": 35000.0,
+    "earned_at": null,
+    "notes": "Importato da colonna CUD Excel",
+    "source": "excel"
+  },
+  {
+    "id": "excel-extra-2023-4",
+    "year": 2023,
+    "description": "VAPA",
+    "amount": 2204.0,
+    "earned_at": null,
+    "notes": "Importato da colonna CUD Excel",
+    "source": "excel"
+  },
+  {
+    "id": "excel-extra-2023-5",
+    "year": 2023,
+    "description": "MIRTI",
+    "amount": 3000.0,
+    "earned_at": null,
+    "notes": "Importato da colonna CUD Excel",
+    "source": "excel"
+  },
+  {
+    "id": "excel-extra-2023-6",
+    "year": 2023,
+    "description": "RITA NARO",
+    "amount": 2000.0,
+    "earned_at": null,
+    "notes": "Importato da colonna CUD Excel",
+    "source": "excel"
+  }
+] as const;
+
 export const historicalYears = [
   {
     "year": 2021,

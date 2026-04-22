@@ -10,7 +10,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Textarea } from "@/components/ui/textarea";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { excelInvoices, excelTaxes, historicalYears } from "@/data/accountingSeed";
+import { excelExtraEarnings, excelInvoices, excelTaxes, historicalYears } from "@/data/accountingSeed";
 
 pdfjs.GlobalWorkerOptions.workerSrc = pdfWorkerUrl;
 
@@ -40,6 +40,7 @@ const taxCategories = ["Ordine ingegneri", "Assicurazione professionale", "INARC
 
 const initialInvoices = excelInvoices as unknown as Invoice[];
 const initialTaxes = excelTaxes as unknown as TaxPayment[];
+const initialExtras = excelExtraEarnings as unknown as ExtraEarning[];
 
 const eur = new Intl.NumberFormat("it-IT", { style: "currency", currency: "EUR" });
 
@@ -99,7 +100,7 @@ const Index = () => {
   const [invoices, setInvoices] = useState<Invoice[]>(initialInvoices);
   const [taxes, setTaxes] = useState<TaxPayment[]>(initialTaxes);
   const [deductions, setDeductions] = useState<TaxDeduction[]>([]);
-  const [extraEarnings, setExtraEarnings] = useState<ExtraEarning[]>([]);
+  const [extraEarnings, setExtraEarnings] = useState<ExtraEarning[]>(initialExtras);
   const [year, setYear] = useState(2026);
   const [uploading, setUploading] = useState(false);
   const [sessionUser, setSessionUser] = useState<string | null>(null);
@@ -121,7 +122,7 @@ const Index = () => {
     if (invoiceRows?.length) setInvoices([...invoiceRows, ...initialInvoices.filter((seed) => !invoiceRows.some((row) => row.year === seed.year && row.invoice_number === seed.invoice_number))]);
     if (taxRows?.length) setTaxes([...taxRows.map((row) => ({ ...row, category: row.category ?? "Altro" })), ...initialTaxes]);
     if (deductionRows?.length) setDeductions(deductionRows);
-    if (extraRows?.length) setExtraEarnings(extraRows);
+    if (extraRows?.length) setExtraEarnings([...extraRows, ...initialExtras.filter((seed) => !extraRows.some((row: ExtraEarning) => row.year === seed.year && row.description === seed.description && Number(row.amount) === Number(seed.amount))) ]);
   };
 
   useEffect(() => {
