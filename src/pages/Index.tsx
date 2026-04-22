@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Area, AreaChart, Bar, BarChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
-import { Archive, Calculator, Coins, Eye, FileCheck2, FileText, HandCoins, Plus, ReceiptText, ShieldCheck, UploadCloud } from "lucide-react";
+import { Archive, Calculator, Coins, Eye, FileCheck2, FileText, FolderOpen, HandCoins, Plus, ReceiptText, ShieldCheck, UploadCloud } from "lucide-react";
 import * as pdfjs from "pdfjs-dist";
 import pdfWorkerUrl from "pdfjs-dist/build/pdf.worker.mjs?url";
 import { Button } from "@/components/ui/button";
@@ -59,14 +59,15 @@ const pickDate = (text: string) => {
 };
 
 const extractInvoice = (text: string, fileName: string): Omit<Invoice, "id" | "pdf_url"> => {
-  const number = Number(text.match(/Numero:\s*(\d+)/i)?.[1] ?? fileName.match(/(?:^|\D)(\d{1,3})(?:\D|$)/)?.[1] ?? 1);
+  const number = Number(text.match(/(?:Numero|Fattura)(?:\s+documento)?\s*:?\s*(\d+)/i)?.[1] ?? fileName.match(/(?:^|\D)(\d{1,3})(?:\D|$)/)?.[1] ?? 1);
   const date = pickDate(text);
   const year = Number(date?.slice(0, 4) ?? new Date().getFullYear());
   const debtor = text.match(/Cessionario\/committente\s+(.+?)\s+-\s+C\.F\./i)?.[1]?.trim() ?? "Cliente non riconosciuto";
-  const firstLineAmount = parseAmount(text.match(/<td>([\d.]+,\d{2})<\/td>/i)?.[1] ?? text.match(/\n\s*([\d.]+,\d{2})\s*\n\s*Cassa previdenziale/i)?.[1]);
-  const pension = parseAmount(text.match(/Cassa previdenziale[\s\S]*?<td>(\d{1,3},\d{2})<\/td>/i)?.[1] ?? text.match(/4,00%[\s\S]*?(\d{1,3},\d{2})/i)?.[1]);
-  const stamp = parseAmount(text.match(/Bollo[\s\S]*?Importo\s*(\d{1,3},\d{2})/i)?.[1]);
-  const total = parseAmount(text.match(/TOTALE[\s\S]*?(\d{1,3}(?:\.\d{3})*,\d{2})/i)?.[1]) || firstLineAmount + pension + stamp;
+  const amounts = [...text.matchAll(/\b\d{1,3}(?:\.\d{3})*,\d{2}\b/g)].map((match) => match[0]);
+  const firstLineAmount = parseAmount(text.match(/(?:Imponibile|Prezzo totale|Totale imponibile)[\s\S]{0,80}?(\d{1,3}(?:\.\d{3})*,\d{2})/i)?.[1] ?? text.match(/\n\s*([\d.]+,\d{2})\s*\n\s*Cassa previdenziale/i)?.[1] ?? amounts[0]);
+  const pension = parseAmount(text.match(/(?:Cassa previdenziale|INARCASSA|Contributo)[\s\S]{0,140}?(\d{1,3}(?:\.\d{3})*,\d{2})/i)?.[1]);
+  const stamp = parseAmount(text.match(/(?:Bollo|Imposta di bollo)[\s\S]{0,80}?(\d{1,3}(?:\.\d{3})*,\d{2})/i)?.[1]);
+  const total = parseAmount(text.match(/(?:TOTALE|Importo totale documento)[\s\S]{0,100}?(\d{1,3}(?:\.\d{3})*,\d{2})/i)?.[1] ?? amounts.at(-1)) || firstLineAmount + pension + stamp;
 
   return {
     year,
@@ -147,7 +148,7 @@ const Index = () => {
     toast.success(authMode === "signup" ? "Account creato" : "Accesso effettuato");
   };
 
-  const yearOptions = useMemo(() => [...new Set([...historicalYears.map((item) => item.year), ...invoices.map((item) => item.year), ...taxes.map((item) => item.year), ...extraEarnings.map((item) => item.year)])].sort((a, b) => b - a), [invoices, taxes, extraEarnings]);
+  const yearOptions = useMemo(() => [...new Set([...historicalYears.map((item) => item.year), ...invoices.map((item) => item.year), ...taxes.map((item) => item.year), ...deductions.map((item) => item.year), ...extraEarnings.map((item) => item.year)])].sort((a, b) => b - a), [invoices, taxes, deductions, extraEarnings]);
 
   const chartData = useMemo(() => {
     const dynamic = yearOptions.map((currentYear) => {
@@ -167,6 +168,7 @@ const Index = () => {
   const selectedTaxes = taxes.filter((item) => item.year === year);
   const selectedDeductions = deductions.filter((item) => item.year === year);
   const selectedExtras = extraEarnings.filter((item) => item.year === year);
+  const selectedPdfInvoices = selectedInvoices.filter((item) => item.pdf_file_name || item.pdf_storage_path || item.pdf_url);
   const current = chartData.find((item) => item.year === year) ?? { net: 0, gross: 0, taxes: 0, extra: 0, gain: 0, invoices: 0 };
   const manualGross = parseAmount(invoiceDraft.taxable_amount) + parseAmount(invoiceDraft.pension_fund) + parseAmount(invoiceDraft.stamp_duty);
 
@@ -187,7 +189,7 @@ const Index = () => {
         const invoiceRow = { ...cleanParsed, pdf_storage_path: storagePath, extracted_text: text, user_id: sessionUser };
         const { data, error } = await supabase
           .from("invoices")
-          .upsert([invoiceRow], { onConflict: "user_id,year,invoice_number" })
+          .insert([invoiceRow])
           .select("*")
           .single();
         if (error) throw error;
@@ -365,6 +367,7 @@ const Index = () => {
             <div className="grid gap-3 sm:grid-cols-2">
               <SummaryTile icon={<Archive className="h-5 w-5" />} label="Fatture" value={`${current.invoices} registrate`} />
               <SummaryTile icon={<Calculator className="h-5 w-5" />} label="Imponibile fatture" value={money(current.net)} />
+              <SummaryTile icon={<FileText className="h-5 w-5" />} label="Tasse" value={money(current.taxes)} />
               <SummaryTile icon={<Coins className="h-5 w-5" />} label="Guadagni extra" value={money(current.extra ?? 0)} />
               <SummaryTile icon={<HandCoins className="h-5 w-5" />} label="Risultato" value={money(current.gain)} />
             </div>
@@ -381,16 +384,16 @@ const Index = () => {
           <div>
             <h2 className="font-display text-3xl font-bold">Archivio fatture, guadagni extra, tasse e detrazioni</h2>
           </div>
-          <div className="flex flex-wrap gap-2">
-            {yearOptions.map((item) => (
-              <Button key={item} variant={item === year ? "ledger" : "outline"} size="sm" onClick={() => setYear(item)}>{item}</Button>
-            ))}
-          </div>
+          <Select value={String(year)} onValueChange={(value) => setYear(Number(value))}>
+            <SelectTrigger className="w-full sm:w-44"><SelectValue placeholder="Anno" /></SelectTrigger>
+            <SelectContent>{yearOptions.map((item) => <SelectItem key={item} value={String(item)}>{item}</SelectItem>)}</SelectContent>
+          </Select>
         </div>
 
         <Tabs defaultValue="fatture" className="space-y-5">
           <TabsList className="h-auto flex-wrap justify-start bg-surface-raised p-1 shadow-soft">
             <TabsTrigger value="fatture">Archivio fatture</TabsTrigger>
+            <TabsTrigger value="pdf">PDF fatture</TabsTrigger>
             <TabsTrigger value="extra">Guadagni extra</TabsTrigger>
             <TabsTrigger value="tasse">Tasse</TabsTrigger>
             <TabsTrigger value="detrazioni">Detrazioni fiscali</TabsTrigger>
@@ -429,6 +432,23 @@ const Index = () => {
                 </LedgerTable>
               </Panel>
             </div>
+          </TabsContent>
+
+          <TabsContent value="pdf">
+            <Panel title={`PDF fatture ${year}`} icon={<FolderOpen className="h-5 w-5" />} action={<Button variant="warm" size="sm" onClick={() => fileRef.current?.click()}><UploadCloud className="h-4 w-4" /> Importa PDF</Button>}>
+              <LedgerTable headers={["N°", "Cliente", "Data", "File", "Totale", "Apri"]} empty="Nessun PDF archiviato per questo anno.">
+                {selectedPdfInvoices.map((invoice) => (
+                  <tr key={invoice.id} className="border-b border-border/70 transition hover:bg-surface-tint/55">
+                    <td className="px-3 py-3 font-semibold">{invoice.invoice_number}</td>
+                    <td className="px-3 py-3">{invoice.debtor}</td>
+                    <td className="px-3 py-3 text-muted-foreground">{invoice.invoice_date ? new Date(invoice.invoice_date).toLocaleDateString("it-IT") : "—"}</td>
+                    <td className="px-3 py-3 text-muted-foreground">{invoice.pdf_file_name ?? "Fattura PDF"}</td>
+                    <td className="px-3 py-3 font-bold text-primary">{money(Number(invoice.gross_total))}</td>
+                    <td className="px-3 py-3"><Button variant="ghost" size="icon" onClick={() => openPdf(invoice)} aria-label="Apri PDF"><Eye className="h-4 w-4" /></Button></td>
+                  </tr>
+                ))}
+              </LedgerTable>
+            </Panel>
           </TabsContent>
 
           <TabsContent value="extra">
