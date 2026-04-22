@@ -1289,6 +1289,337 @@ export const excelInvoices = [
   }
 ] as const;
 
-export const excelTaxes = [] as const;
+export const excelTaxes = [
+  {
+    "id": "excel-tax-2021-1",
+    "year": 2021,
+    "category": "Altro",
+    "reference": "INARCASSA",
+    "amount": 1069.0,
+    "paid_at": null,
+    "notes": null,
+    "source": "excel"
+  },
+  {
+    "id": "excel-tax-2021-2",
+    "year": 2021,
+    "category": "Spese F24",
+    "reference": "INPS",
+    "amount": 1237.88,
+    "paid_at": null,
+    "notes": null,
+    "source": "excel"
+  },
+  {
+    "id": "excel-tax-2021-3",
+    "year": 2021,
+    "category": "Spese F24",
+    "reference": "INPS",
+    "amount": 1240.11,
+    "paid_at": null,
+    "notes": null,
+    "source": "excel"
+  },
+  {
+    "id": "excel-tax-2021-4",
+    "year": 2021,
+    "category": "Spese F24",
+    "reference": "INPS",
+    "amount": 1244.19,
+    "paid_at": null,
+    "notes": null,
+    "source": "excel"
+  },
+  {
+    "id": "excel-tax-2021-5",
+    "year": 2021,
+    "category": "Spese F24",
+    "reference": "INPS",
+    "amount": 1248.28,
+    "paid_at": null,
+    "notes": null,
+    "source": "excel"
+  },
+  {
+    "id": "excel-tax-2021-6",
+    "year": 2021,
+    "category": "Spese F24",
+    "reference": "INPS",
+    "amount": 384.5,
+    "paid_at": null,
+    "notes": null,
+    "source": "excel"
+  },
+  {
+    "id": "excel-tax-2022-1",
+    "year": 2022,
+    "category": "Ordine ingegneri",
+    "reference": "ORDINE INGEGNERI",
+    "amount": 209.0,
+    "paid_at": null,
+    "notes": null,
+    "source": "excel"
+  },
+  {
+    "id": "excel-tax-2022-2",
+    "year": 2022,
+    "category": "Altro",
+    "reference": "CORSO ORDINE INGEGNERI",
+    "amount": 30.0,
+    "paid_at": null,
+    "notes": null,
+    "source": "excel"
+  },
+  {
+    "id": "excel-tax-2022-3",
+    "year": 2022,
+    "category": "INARCASSA (contributo soggettivo)",
+    "reference": "INARCASSA SOGGETTIVO",
+    "amount": 1954.24,
+    "paid_at": null,
+    "notes": null,
+    "source": "excel"
+  },
+  {
+    "id": "excel-tax-2022-4",
+    "year": 2022,
+    "category": "INARCASSA (contributo integrativo)",
+    "reference": "INARCASSA INTEGRATIVO",
+    "amount": 1382.32,
+    "paid_at": null,
+    "notes": null,
+    "source": "excel"
+  },
+  {
+    "id": "excel-tax-2022-5",
+    "year": 2022,
+    "category": "INARCASSA (contributo paternità)",
+    "reference": "INARCASSA PATERNITÀ",
+    "amount": 44.0,
+    "paid_at": null,
+    "notes": null,
+    "source": "excel"
+  },
+  {
+    "id": "excel-tax-2022-6",
+    "year": 2022,
+    "category": "Spese F24",
+    "reference": "INPS",
+    "amount": 895.39,
+    "paid_at": null,
+    "notes": null,
+    "source": "excel"
+  },
+  {
+    "id": "excel-tax-2022-7",
+    "year": 2022,
+    "category": "Spese F24",
+    "reference": "INPS",
+    "amount": 547.0,
+    "paid_at": null,
+    "notes": null,
+    "source": "excel"
+  },
+  {
+    "id": "excel-tax-2023-1",
+    "year": 2023,
+    "category": "Ordine ingegneri",
+    "reference": "ORDINE INGEGNERI",
+    "amount": 110.0,
+    "paid_at": null,
+    "notes": null,
+    "source": "excel"
+  },
+  {
+    "id": "excel-tax-2023-2",
+    "year": 2023,
+    "category": "Assicurazione professionale",
+    "reference": "ASSICURAZIONE PROFESSIONALE",
+    "amount": 256.0,
+    "paid_at": null,
+    "notes": null,
+    "source": "excel"
+  },
+  {
+    "id": "excel-tax-2023-3",
+    "year": 2023,
+    "category": "INARCASSA (contributo soggettivo)",
+    "reference": "INARCASSA SOGGETTIVO",
+    "amount": 5531.32,
+    "paid_at": null,
+    "notes": null,
+    "source": "excel"
+  },
+  {
+    "id": "excel-tax-2023-4",
+    "year": 2023,
+    "category": "INARCASSA (contributo integrativo)",
+    "reference": "INARCASSA INTEGRATIVO",
+    "amount": 1956.74,
+    "paid_at": null,
+    "notes": null,
+    "source": "excel"
+  },
+  {
+    "id": "excel-tax-2023-5",
+    "year": 2023,
+    "category": "INARCASSA (contributo paternità)",
+    "reference": "INARCASSA PATERNITÀ",
+    "amount": 60.0,
+    "paid_at": null,
+    "notes": null,
+    "source": "excel"
+  },
+  {
+    "id": "excel-tax-2023-6",
+    "year": 2023,
+    "category": "Spese F24",
+    "reference": "ADE P.IVA",
+    "amount": 1622.81,
+    "paid_at": null,
+    "notes": null,
+    "source": "excel"
+  },
+  {
+    "id": "excel-tax-2023-7",
+    "year": 2023,
+    "category": "Spese F24",
+    "reference": "ADE P.IVA",
+    "amount": 902.5,
+    "paid_at": null,
+    "notes": null,
+    "source": "excel"
+  },
+  {
+    "id": "excel-tax-2024-18",
+    "year": 2024,
+    "category": "Ordine ingegneri",
+    "reference": "ORDINE INGEGNERI",
+    "amount": 110.0,
+    "paid_at": null,
+    "notes": null,
+    "source": "excel"
+  },
+  {
+    "id": "excel-tax-2024-1",
+    "year": 2024,
+    "category": "Assicurazione professionale",
+    "reference": "ASSICURAZIONE PROFESSIONALE",
+    "amount": 211.0,
+    "paid_at": null,
+    "notes": null,
+    "source": "excel"
+  },
+  {
+    "id": "excel-tax-2024-2",
+    "year": 2024,
+    "category": "INARCASSA (contributo soggettivo)",
+    "reference": "INARCASSA SOGGETTIVO",
+    "amount": 2565.05,
+    "paid_at": null,
+    "notes": null,
+    "source": "excel"
+  },
+  {
+    "id": "excel-tax-2024-3",
+    "year": 2024,
+    "category": "INARCASSA (contributo integrativo)",
+    "reference": "INARCASSA INTEGRATIVO",
+    "amount": 1814.36,
+    "paid_at": null,
+    "notes": null,
+    "source": "excel"
+  },
+  {
+    "id": "excel-tax-2024-4",
+    "year": 2024,
+    "category": "INARCASSA (contributo paternità)",
+    "reference": "INARCASSA PATERNITÀ",
+    "amount": 72.0,
+    "paid_at": null,
+    "notes": null,
+    "source": "excel"
+  },
+  {
+    "id": "excel-tax-2024-5",
+    "year": 2024,
+    "category": "Spese F24",
+    "reference": "ADE P.IVA",
+    "amount": 1325.5,
+    "paid_at": null,
+    "notes": null,
+    "source": "excel"
+  },
+  {
+    "id": "excel-tax-2025-1",
+    "year": 2025,
+    "category": "Ordine ingegneri",
+    "reference": "ORDINE INGEGNERI",
+    "amount": 110.0,
+    "paid_at": null,
+    "notes": null,
+    "source": "excel"
+  },
+  {
+    "id": "excel-tax-2025-2",
+    "year": 2025,
+    "category": "Assicurazione professionale",
+    "reference": "ASSICURAZIONE PROFESSIONALE",
+    "amount": 211.0,
+    "paid_at": null,
+    "notes": null,
+    "source": "excel"
+  },
+  {
+    "id": "excel-tax-2025-3",
+    "year": 2025,
+    "category": "INARCASSA (contributo soggettivo)",
+    "reference": "INARCASSA SOGGETTIVO",
+    "amount": 916.5,
+    "paid_at": null,
+    "notes": null,
+    "source": "excel"
+  },
+  {
+    "id": "excel-tax-2025-4",
+    "year": 2025,
+    "category": "INARCASSA (contributo integrativo)",
+    "reference": "INARCASSA INTEGRATIVO",
+    "amount": 278.5,
+    "paid_at": null,
+    "notes": null,
+    "source": "excel"
+  },
+  {
+    "id": "excel-tax-2025-5",
+    "year": 2025,
+    "category": "INARCASSA (contributo paternità)",
+    "reference": "INARCASSA PATERNITÀ",
+    "amount": 91.0,
+    "paid_at": null,
+    "notes": null,
+    "source": "excel"
+  },
+  {
+    "id": "excel-tax-2025-6",
+    "year": 2025,
+    "category": "Spese F24",
+    "reference": "ADE P.IVA",
+    "amount": 742.5,
+    "paid_at": null,
+    "notes": null,
+    "source": "excel"
+  },
+  {
+    "id": "excel-tax-2026-1",
+    "year": 2026,
+    "category": "Ordine ingegneri",
+    "reference": "ORDINE INGEGNERI",
+    "amount": 110.0,
+    "paid_at": null,
+    "notes": null,
+    "source": "excel"
+  }
+] as const;
 
 export const historicalYears = [] as const;
