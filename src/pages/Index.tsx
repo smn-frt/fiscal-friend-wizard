@@ -5,9 +5,11 @@ import * as pdfjs from "pdfjs-dist";
 import pdfWorkerUrl from "pdfjs-dist/build/pdf.worker.mjs?url";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import { excelInvoices, excelTaxes, historicalYears } from "@/data/accountingSeed";
 
 pdfjs.GlobalWorkerOptions.workerSrc = pdfWorkerUrl;
 
@@ -24,43 +26,17 @@ type Invoice = {
   pdf_file_name: string | null;
   pdf_storage_path: string | null;
   pdf_url?: string;
+  source?: string;
 };
 
-type TaxPayment = { id: string; year: number; reference: string; amount: number; paid_at?: string | null; notes?: string | null };
+type TaxPayment = { id: string; year: number; category: string; reference: string; amount: number; paid_at?: string | null; notes?: string | null; source?: string };
 
-const historicalYears = [
-  { year: 2021, invoices: 12, net: 18950, gross: 19732, taxes: 6423.96, gain: 13308.04 },
-  { year: 2022, invoices: 14, net: 34519.5, gross: 35928.28, taxes: 5061.95, gain: 30866.33 },
-  { year: 2023, invoices: 17, net: 48639.42, gross: 50619, taxes: 10439.37, gain: 40179.63 },
-  { year: 2024, invoices: 18, net: 45358.05, gross: 47208.37, taxes: 6097.91, gain: 41110.46 },
-  { year: 2025, invoices: 23, net: 52350, gross: 54490, taxes: 2349.5, gain: 52140.5 },
-];
+type TaxDeduction = { id: string; year: number; category: string; description: string; amount: number; paid_at?: string | null; notes?: string | null };
 
-const initialInvoices: Invoice[] = [
-  {
-    id: "sample-2026-1",
-    year: 2026,
-    invoice_number: 1,
-    debtor: "INTAGO ENGINEERING S.R.L.",
-    invoice_date: "2026-01-07",
-    taxable_amount: 3000,
-    pension_fund: 120,
-    stamp_duty: 2,
-    gross_total: 3122,
-    pdf_file_name: "01_ITFRTSMN93P22H501R_M4uia.pdf",
-    pdf_storage_path: null,
-    pdf_url: "/invoices/01_ITFRTSMN93P22H501R_M4uia.pdf",
-  },
-];
+const taxCategories = ["Ordine ingegneri", "Assicurazione professionale", "INARCASSA (contributo soggettivo)", "INARCASSA (contributo integrativo)", "INARCASSA (contributo paternità)", "Spese F24", "Altro"];
 
-const initialTaxes: TaxPayment[] = [
-  { id: "tax-2026-ordine", year: 2026, reference: "ORDINE INGEGNERI", amount: 110 },
-  { id: "tax-2025-ordine", year: 2025, reference: "ORDINE INGEGNERI", amount: 110 },
-  { id: "tax-2025-ass", year: 2025, reference: "ASSICURAZIONE PROFESSIONALE", amount: 211 },
-  { id: "tax-2025-inarcassa-s", year: 2025, reference: "INARCASSA SOGGETTIVO", amount: 916.5 },
-  { id: "tax-2025-inarcassa-i", year: 2025, reference: "INARCASSA INTEGRATIVO", amount: 278.5 },
-  { id: "tax-2025-ade", year: 2025, reference: "ADE P.IVA", amount: 742.5 },
-];
+const initialInvoices = excelInvoices as unknown as Invoice[];
+const initialTaxes = excelTaxes as unknown as TaxPayment[];
 
 const eur = new Intl.NumberFormat("it-IT", { style: "currency", currency: "EUR" });
 
@@ -116,12 +92,14 @@ const extractPdfText = async (file: File) => {
 const Index = () => {
   const [invoices, setInvoices] = useState<Invoice[]>(initialInvoices);
   const [taxes, setTaxes] = useState<TaxPayment[]>(initialTaxes);
+  const [deductions, setDeductions] = useState<TaxDeduction[]>([]);
   const [year, setYear] = useState(2026);
   const [uploading, setUploading] = useState(false);
   const [sessionUser, setSessionUser] = useState<string | null>(null);
   const [authDraft, setAuthDraft] = useState({ email: "", password: "" });
   const [authMode, setAuthMode] = useState<"signin" | "signup">("signup");
-  const [taxDraft, setTaxDraft] = useState({ reference: "", amount: "", paid_at: "" });
+  const [taxDraft, setTaxDraft] = useState({ category: "Ordine ingegneri", reference: "", amount: "", paid_at: "" });
+  const [deductionDraft, setDeductionDraft] = useState({ category: "Altro", description: "", amount: "", paid_at: "" });
   const fileRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
@@ -130,12 +108,14 @@ const Index = () => {
       const uid = session.session?.user.id ?? null;
       setSessionUser(uid);
       if (!uid) return;
-      const [{ data: invoiceRows }, { data: taxRows }] = await Promise.all([
+      const [{ data: invoiceRows }, { data: taxRows }, { data: deductionRows }] = await Promise.all([
         supabase.from("invoices").select("*").order("year", { ascending: false }).order("invoice_number", { ascending: false }),
         supabase.from("tax_payments").select("*").order("year", { ascending: false }),
+        (supabase as any).from("tax_deductions").select("*").order("year", { ascending: false }),
       ]);
-      if (invoiceRows?.length) setInvoices([initialInvoices[0], ...invoiceRows.filter((row) => row.id !== initialInvoices[0].id)]);
-      if (taxRows?.length) setTaxes([...initialTaxes, ...taxRows]);
+      if (invoiceRows?.length) setInvoices([...invoiceRows, ...initialInvoices.filter((seed) => !invoiceRows.some((row) => row.year === seed.year && row.invoice_number === seed.invoice_number))]);
+      if (taxRows?.length) setTaxes([...taxRows.map((row) => ({ ...row, category: row.category ?? "Altro" })), ...initialTaxes]);
+      if (deductionRows?.length) setDeductions(deductionRows);
     };
     boot();
   }, []);
@@ -166,6 +146,7 @@ const Index = () => {
 
   const selectedInvoices = invoices.filter((item) => item.year === year).sort((a, b) => a.invoice_number - b.invoice_number);
   const selectedTaxes = taxes.filter((item) => item.year === year);
+  const selectedDeductions = deductions.filter((item) => item.year === year);
   const current = chartData.find((item) => item.year === year) ?? { net: 0, gross: 0, taxes: 0, gain: 0, invoices: 0 };
 
   const handleUpload = async (file?: File) => {
@@ -181,7 +162,8 @@ const Index = () => {
         await supabase.storage.from("invoice-pdfs").upload(storagePath, file, { upsert: true });
         const { data: signed } = await supabase.storage.from("invoice-pdfs").createSignedUrl(storagePath, 60 * 60);
         url = signed?.signedUrl ?? url;
-        const invoiceRow = { ...parsed, pdf_storage_path: storagePath, extracted_text: text, user_id: sessionUser };
+        const { source: _source, ...cleanParsed } = parsed;
+        const invoiceRow = { ...cleanParsed, pdf_storage_path: storagePath, extracted_text: text, user_id: sessionUser };
         const { data, error } = await supabase
           .from("invoices")
           .upsert([invoiceRow], { onConflict: "user_id,year,invoice_number" })
@@ -205,15 +187,29 @@ const Index = () => {
   const addTax = async () => {
     const amount = parseAmount(taxDraft.amount);
     if (!taxDraft.reference || !amount) return;
-    const draft = { year, reference: taxDraft.reference, amount, paid_at: taxDraft.paid_at || null, notes: null };
+    const draft = { year, category: taxDraft.category, reference: taxDraft.reference, amount, paid_at: taxDraft.paid_at || null, notes: null };
     if (sessionUser) {
-      const { data, error } = await supabase.from("tax_payments").insert({ ...draft, user_id: sessionUser }).select("*").single();
+      const { data, error } = await (supabase as any).from("tax_payments").insert({ ...draft, user_id: sessionUser }).select("*").single();
       if (error) return toast.error("Tassa non salvata", { description: error.message });
       setTaxes((items) => [data, ...items]);
     } else {
       setTaxes((items) => [{ ...draft, id: crypto.randomUUID() }, ...items]);
     }
-    setTaxDraft({ reference: "", amount: "", paid_at: "" });
+    setTaxDraft({ category: "Ordine ingegneri", reference: "", amount: "", paid_at: "" });
+  };
+
+  const addDeduction = async () => {
+    const amount = parseAmount(deductionDraft.amount);
+    if (!deductionDraft.description || !amount) return;
+    const draft = { year, category: deductionDraft.category, description: deductionDraft.description, amount, paid_at: deductionDraft.paid_at || null, notes: null };
+    if (sessionUser) {
+      const { data, error } = await (supabase as any).from("tax_deductions").insert({ ...draft, user_id: sessionUser }).select("*").single();
+      if (error) return toast.error("Detrazione non salvata", { description: error.message });
+      setDeductions((items) => [data, ...items]);
+    } else {
+      setDeductions((items) => [{ ...draft, id: crypto.randomUUID() }, ...items]);
+    }
+    setDeductionDraft({ category: "Altro", description: "", amount: "", paid_at: "" });
   };
 
   const openPdf = async (invoice: Invoice) => {
@@ -291,6 +287,7 @@ const Index = () => {
             <TabsTrigger value="dashboard">Dashboard</TabsTrigger>
             <TabsTrigger value="fatture">Fatture</TabsTrigger>
             <TabsTrigger value="tasse">Tasse pagate</TabsTrigger>
+            <TabsTrigger value="detrazioni">Detrazioni fiscali</TabsTrigger>
           </TabsList>
 
           <TabsContent value="dashboard" className="space-y-5">
@@ -328,8 +325,8 @@ const Index = () => {
           </TabsContent>
 
           <TabsContent value="fatture">
-            <Panel title={`Fatture ${year}`} icon={<FileCheck2 className="h-5 w-5" />} action={<Button variant="warm" size="sm" onClick={() => fileRef.current?.click()}><Plus className="h-4 w-4" /> PDF</Button>}>
-              <LedgerTable headers={["N°", "Cliente", "Data", "Imponibile", "Cassa", "Bollo", "Totale", "PDF"]} empty="Nessuna fattura archiviata per questo anno.">
+            <Panel title={`Archivio fatture ${year}`} icon={<FileCheck2 className="h-5 w-5" />} action={<Button variant="warm" size="sm" onClick={() => fileRef.current?.click()}><Plus className="h-4 w-4" /> Carica PDF</Button>}>
+              <LedgerTable headers={["N°", "Cliente", "Data", "Imponibile", "Cassa", "Bollo", "Totale", "Origine", "PDF"]} empty="Nessuna fattura archiviata per questo anno.">
                 {selectedInvoices.map((invoice) => (
                   <tr key={invoice.id} className="border-b border-border/70 transition hover:bg-surface-tint/55">
                     <td className="px-3 py-3 font-semibold">{invoice.invoice_number}</td>
@@ -339,7 +336,8 @@ const Index = () => {
                     <td className="px-3 py-3">{money(Number(invoice.pension_fund))}</td>
                     <td className="px-3 py-3">{money(Number(invoice.stamp_duty))}</td>
                     <td className="px-3 py-3 font-bold text-primary">{money(Number(invoice.gross_total))}</td>
-                    <td className="px-3 py-3"><Button variant="ghost" size="icon" onClick={() => openPdf(invoice)} aria-label="Apri PDF"><Eye className="h-4 w-4" /></Button></td>
+                    <td className="px-3 py-3 text-muted-foreground">{invoice.source === "excel" ? "Excel" : "PDF"}</td>
+                    <td className="px-3 py-3"><Button variant="ghost" size="icon" onClick={() => openPdf(invoice)} aria-label="Apri PDF" disabled={!invoice.pdf_url && !invoice.pdf_storage_path}><Eye className="h-4 w-4" /></Button></td>
                   </tr>
                 ))}
               </LedgerTable>
@@ -348,21 +346,55 @@ const Index = () => {
 
           <TabsContent value="tasse">
             <div className="grid gap-5 lg:grid-cols-[0.75fr_1.25fr]">
-              <Panel title="Nuova tassa" icon={<Plus className="h-5 w-5" />}>
+              <Panel title="Nuova spesa/tassa" icon={<Plus className="h-5 w-5" />}>
                 <div className="grid gap-3">
-                  <Input placeholder="Riferimento, es. INARCASSA" value={taxDraft.reference} onChange={(e) => setTaxDraft((draft) => ({ ...draft, reference: e.target.value }))} />
+                  <Select value={taxDraft.category} onValueChange={(category) => setTaxDraft((draft) => ({ ...draft, category, reference: category === "Altro" ? draft.reference : category }))}>
+                    <SelectTrigger><SelectValue placeholder="Categoria" /></SelectTrigger>
+                    <SelectContent>{taxCategories.map((category) => <SelectItem key={category} value={category}>{category}</SelectItem>)}</SelectContent>
+                  </Select>
+                  <Input placeholder={taxDraft.category === "Altro" ? "Specifica la voce" : "Descrizione facoltativa"} value={taxDraft.reference} onChange={(e) => setTaxDraft((draft) => ({ ...draft, reference: e.target.value }))} />
                   <Input placeholder="Importo, es. 916,50" value={taxDraft.amount} onChange={(e) => setTaxDraft((draft) => ({ ...draft, amount: e.target.value }))} />
                   <Input type="date" value={taxDraft.paid_at} onChange={(e) => setTaxDraft((draft) => ({ ...draft, paid_at: e.target.value }))} />
                   <Button variant="ledger" onClick={addTax}>Registra pagamento</Button>
                 </div>
               </Panel>
               <Panel title={`Tasse pagate ${year}`} icon={<FileText className="h-5 w-5" />}>
-                <LedgerTable headers={["Riferimento", "Data", "Importo"]} empty="Nessuna tassa registrata per questo anno.">
+                <LedgerTable headers={["Categoria", "Riferimento", "Data", "Importo"]} empty="Nessuna tassa registrata per questo anno.">
                   {selectedTaxes.map((tax) => (
                     <tr key={tax.id} className="border-b border-border/70 transition hover:bg-surface-tint/55">
+                      <td className="px-3 py-3 text-muted-foreground">{tax.category}</td>
                       <td className="px-3 py-3 font-semibold">{tax.reference}</td>
                       <td className="px-3 py-3 text-muted-foreground">{tax.paid_at ? new Date(tax.paid_at).toLocaleDateString("it-IT") : "—"}</td>
                       <td className="px-3 py-3 font-bold text-accent">{money(Number(tax.amount))}</td>
+                    </tr>
+                  ))}
+                </LedgerTable>
+              </Panel>
+            </div>
+          </TabsContent>
+
+          <TabsContent value="detrazioni">
+            <div className="grid gap-5 lg:grid-cols-[0.75fr_1.25fr]">
+              <Panel title="Nuova detrazione" icon={<Plus className="h-5 w-5" />}>
+                <div className="grid gap-3">
+                  <Select value={deductionDraft.category} onValueChange={(category) => setDeductionDraft((draft) => ({ ...draft, category }))}>
+                    <SelectTrigger><SelectValue placeholder="Categoria" /></SelectTrigger>
+                    <SelectContent>{taxCategories.map((category) => <SelectItem key={category} value={category}>{category}</SelectItem>)}</SelectContent>
+                  </Select>
+                  <Input placeholder="Descrizione detrazione" value={deductionDraft.description} onChange={(e) => setDeductionDraft((draft) => ({ ...draft, description: e.target.value }))} />
+                  <Input placeholder="Importo, es. 150,00" value={deductionDraft.amount} onChange={(e) => setDeductionDraft((draft) => ({ ...draft, amount: e.target.value }))} />
+                  <Input type="date" value={deductionDraft.paid_at} onChange={(e) => setDeductionDraft((draft) => ({ ...draft, paid_at: e.target.value }))} />
+                  <Button variant="ledger" onClick={addDeduction}>Registra detrazione</Button>
+                </div>
+              </Panel>
+              <Panel title={`Detrazioni fiscali ${year}`} icon={<FileText className="h-5 w-5" />}>
+                <LedgerTable headers={["Categoria", "Descrizione", "Data", "Importo"]} empty="Nessuna detrazione registrata per questo anno.">
+                  {selectedDeductions.map((deduction) => (
+                    <tr key={deduction.id} className="border-b border-border/70 transition hover:bg-surface-tint/55">
+                      <td className="px-3 py-3 text-muted-foreground">{deduction.category}</td>
+                      <td className="px-3 py-3 font-semibold">{deduction.description}</td>
+                      <td className="px-3 py-3 text-muted-foreground">{deduction.paid_at ? new Date(deduction.paid_at).toLocaleDateString("it-IT") : "—"}</td>
+                      <td className="px-3 py-3 font-bold text-primary">{money(Number(deduction.amount))}</td>
                     </tr>
                   ))}
                 </LedgerTable>
