@@ -148,7 +148,7 @@ const Index = () => {
     toast.success(authMode === "signup" ? "Account creato" : "Accesso effettuato");
   };
 
-  const yearOptions = useMemo(() => [...new Set([...historicalYears.map((item) => item.year), ...invoices.map((item) => item.year), ...taxes.map((item) => item.year), ...extraEarnings.map((item) => item.year)])].sort((a, b) => b - a), [invoices, taxes, extraEarnings]);
+  const yearOptions = useMemo(() => [...new Set([...historicalYears.map((item) => item.year), ...invoices.map((item) => item.year), ...taxes.map((item) => item.year), ...deductions.map((item) => item.year), ...extraEarnings.map((item) => item.year)])].sort((a, b) => b - a), [invoices, taxes, deductions, extraEarnings]);
 
   const chartData = useMemo(() => {
     const dynamic = yearOptions.map((currentYear) => {
@@ -168,6 +168,7 @@ const Index = () => {
   const selectedTaxes = taxes.filter((item) => item.year === year);
   const selectedDeductions = deductions.filter((item) => item.year === year);
   const selectedExtras = extraEarnings.filter((item) => item.year === year);
+  const selectedPdfInvoices = selectedInvoices.filter((item) => item.pdf_file_name || item.pdf_storage_path || item.pdf_url);
   const current = chartData.find((item) => item.year === year) ?? { net: 0, gross: 0, taxes: 0, extra: 0, gain: 0, invoices: 0 };
   const manualGross = parseAmount(invoiceDraft.taxable_amount) + parseAmount(invoiceDraft.pension_fund) + parseAmount(invoiceDraft.stamp_duty);
 
