@@ -369,19 +369,23 @@ const Index = () => {
             <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
               <div>
                 <p className="text-sm font-semibold uppercase text-primary">Anno selezionato</p>
-                <h2 className="font-display text-2xl font-bold">Riepilogo {year}</h2>
+                <h2 className="font-display text-2xl font-bold">Riepilogo {year === "all" ? "totale" : year}</h2>
               </div>
-              <Select value={String(year)} onValueChange={(value) => setYear(Number(value))}>
+              <Select value={String(year)} onValueChange={(value) => setYear(value === "all" ? "all" : Number(value))}>
                 <SelectTrigger className="w-full sm:w-40"><SelectValue placeholder="Anno" /></SelectTrigger>
-                <SelectContent>{yearOptions.map((item) => <SelectItem key={item} value={String(item)}>{item}</SelectItem>)}</SelectContent>
+                <SelectContent>
+                  <SelectItem value="all">Totale</SelectItem>
+                  {yearOptions.map((item) => <SelectItem key={item} value={String(item)}>{item}</SelectItem>)}
+                </SelectContent>
               </Select>
             </div>
             <div className="grid gap-3 sm:grid-cols-2">
               <SummaryTile icon={<Archive className="h-5 w-5" />} label="Fatture" value={`${current.invoices} registrate`} />
-              <SummaryTile icon={<Calculator className="h-5 w-5" />} label="Imponibile fatture" value={money(current.net)} />
+              <SummaryTile icon={<Calculator className="h-5 w-5" />} label="Fatturato lordo" value={money(current.gross)} />
+              <SummaryTile icon={<ShieldCheck className="h-5 w-5" />} label="Totale cassa" value={money(current.pension)} />
               <SummaryTile icon={<FileText className="h-5 w-5" />} label="Tasse" value={money(current.taxes)} />
               <SummaryTile icon={<Coins className="h-5 w-5" />} label="Guadagni extra" value={money(current.extra ?? 0)} />
-              <SummaryTile icon={<HandCoins className="h-5 w-5" />} label="Risultato" value={money(current.gain)} />
+              <SummaryTile className="sm:col-span-2" icon={<HandCoins className="h-5 w-5" />} label="Guadagno totale" value={money(current.gross - current.taxes + (current.extra ?? 0))} />
             </div>
             <Button className="mt-4 w-full" variant="warm" onClick={() => fileRef.current?.click()} disabled={uploading}>
               <UploadCloud className="h-4 w-4" /> {uploading ? "Lettura PDF…" : "Importa fattura PDF"}
@@ -396,9 +400,12 @@ const Index = () => {
           <div>
             <h2 className="font-display text-3xl font-bold">Archivio fatture, guadagni extra, tasse e detrazioni</h2>
           </div>
-          <Select value={String(year)} onValueChange={(value) => setYear(Number(value))}>
+          <Select value={String(year)} onValueChange={(value) => setYear(value === "all" ? "all" : Number(value))}>
             <SelectTrigger className="w-full sm:w-44"><SelectValue placeholder="Anno" /></SelectTrigger>
-            <SelectContent>{yearOptions.map((item) => <SelectItem key={item} value={String(item)}>{item}</SelectItem>)}</SelectContent>
+            <SelectContent>
+              <SelectItem value="all">Totale</SelectItem>
+              {yearOptions.map((item) => <SelectItem key={item} value={String(item)}>{item}</SelectItem>)}
+            </SelectContent>
           </Select>
         </div>
 
