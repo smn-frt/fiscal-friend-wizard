@@ -5,7 +5,7 @@ import logoSf from "@/assets/logo-sf.jpg";
 const navItems = [
   { to: "/", label: "Contabilità", icon: ReceiptText },
   { to: "/dati", label: "Dati", icon: BookUser },
-  { to: "/lavori-futuri", label: "Lavori futuri", icon: Briefcase },
+  { to: "/lavori-futuri", label: "Lavori", icon: Briefcase },
 ];
 
 const AppShell = () => {

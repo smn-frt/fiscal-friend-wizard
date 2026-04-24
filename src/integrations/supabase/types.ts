@@ -56,11 +56,18 @@ export type Database = {
           client: string
           collected_amount: number | null
           collected_at: string | null
+          converted_invoice_id: string | null
+          converted_to_invoice: boolean
           created_at: string
           description: string
           expected_payment_date: string | null
           id: string
+          is_recurring: boolean
           notes: string | null
+          offer_pdf_name: string | null
+          offer_pdf_path: string | null
+          recurring_monthly_amount: number | null
+          recurring_start_date: string | null
           status: string
           updated_at: string
           user_id: string
@@ -70,11 +77,18 @@ export type Database = {
           client?: string
           collected_amount?: number | null
           collected_at?: string | null
+          converted_invoice_id?: string | null
+          converted_to_invoice?: boolean
           created_at?: string
           description?: string
           expected_payment_date?: string | null
           id?: string
+          is_recurring?: boolean
           notes?: string | null
+          offer_pdf_name?: string | null
+          offer_pdf_path?: string | null
+          recurring_monthly_amount?: number | null
+          recurring_start_date?: string | null
           status?: string
           updated_at?: string
           user_id: string
@@ -84,11 +98,18 @@ export type Database = {
           client?: string
           collected_amount?: number | null
           collected_at?: string | null
+          converted_invoice_id?: string | null
+          converted_to_invoice?: boolean
           created_at?: string
           description?: string
           expected_payment_date?: string | null
           id?: string
+          is_recurring?: boolean
           notes?: string | null
+          offer_pdf_name?: string | null
+          offer_pdf_path?: string | null
+          recurring_monthly_amount?: number | null
+          recurring_start_date?: string | null
           status?: string
           updated_at?: string
           user_id?: string
@@ -146,6 +167,48 @@ export type Database = {
           updated_at?: string
           user_id?: string
           year?: number
+        }
+        Relationships: []
+      }
+      recurring_expenses: {
+        Row: {
+          active: boolean
+          amount: number
+          category: string
+          created_at: string
+          frequency: string
+          id: string
+          name: string
+          next_due_date: string | null
+          notes: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          active?: boolean
+          amount?: number
+          category?: string
+          created_at?: string
+          frequency?: string
+          id?: string
+          name?: string
+          next_due_date?: string | null
+          notes?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          active?: boolean
+          amount?: number
+          category?: string
+          created_at?: string
+          frequency?: string
+          id?: string
+          name?: string
+          next_due_date?: string | null
+          notes?: string | null
+          updated_at?: string
+          user_id?: string
         }
         Relationships: []
       }
