@@ -50,6 +50,51 @@ export type Database = {
         }
         Relationships: []
       }
+      future_jobs: {
+        Row: {
+          agreed_amount: number
+          client: string
+          collected_amount: number | null
+          collected_at: string | null
+          created_at: string
+          description: string
+          expected_payment_date: string | null
+          id: string
+          notes: string | null
+          status: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          agreed_amount?: number
+          client?: string
+          collected_amount?: number | null
+          collected_at?: string | null
+          created_at?: string
+          description?: string
+          expected_payment_date?: string | null
+          id?: string
+          notes?: string | null
+          status?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          agreed_amount?: number
+          client?: string
+          collected_amount?: number | null
+          collected_at?: string | null
+          created_at?: string
+          description?: string
+          expected_payment_date?: string | null
+          id?: string
+          notes?: string | null
+          status?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       invoices: {
         Row: {
           created_at: string

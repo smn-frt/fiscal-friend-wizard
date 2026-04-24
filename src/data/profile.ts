@@ -1,0 +1,42 @@
+export const profile = {
+  name: "Simone",
+  surname: "Fratoni",
+  fullName: "Ing. Simone Fratoni",
+  birth: { city: "Roma", date: "22/09/1993" },
+  residence: "Via Prato Sesia 20, 00166 Roma",
+  order: "Ordine degli Ingegneri di Roma",
+  orderNumber: "A39966",
+  cf: "FRTSMN93P22H501R",
+  vat: "16002701007",
+  email: "simonefratoni@gmail.com",
+  pec: "simonefratoni@pec.ording.roma.it",
+  phone: "3298544146",
+  banks: [
+    {
+      name: "Mediolanum",
+      holder: "FRATONI SIMONE",
+      iban: "IT96Q0306234210000002457485",
+      country: "IT",
+      cinEu: "42",
+      cinIt: "K",
+      abi: "03062",
+      cab: "34210",
+      account: "001/02457485/07",
+      bic: "MEDBITMM",
+    },
+    {
+      name: "Unicredit",
+      holder: "FRATONI SIMONE",
+      iban: "IT42K0200832974001455670220",
+      country: "IT",
+      cinEu: "42",
+      cinIt: "K",
+      abi: "02008",
+      cab: "32974",
+      account: "001455670220",
+      bic: "UNCRITM1B29",
+    },
+  ],
+};
+
+export type Profile = typeof profile;
